@@ -472,6 +472,7 @@ button:focus-visible,
    -------------------------------------------------------------------------- */
 
 .room-header {
+  flex: none;
   background: var(--surface);
   border-bottom: 1px solid var(--line);
   padding: 12px var(--s7);
@@ -483,6 +484,7 @@ button:focus-visible,
 .room-header__title { flex: 1 1 160px; min-width: 150px; }
 
 .state-banner {
+  flex: none;
   display: flex;
   align-items: center;
   gap: var(--s4);
@@ -496,6 +498,7 @@ button:focus-visible,
 .state-banner--danger .state-banner__action { color: var(--danger); }
 
 .topic-bar {
+  flex: none;
   background: var(--surface);
   border-bottom: 1px solid var(--line);
   padding: 9px var(--s6);
@@ -631,6 +634,7 @@ button:focus-visible,
    -------------------------------------------------------------------------- */
 
 .composer {
+  flex: none;
   background: var(--surface);
   border-top: 1px solid var(--line);
   padding: 11px var(--s6) var(--s6);
@@ -1215,7 +1219,7 @@ body { overscroll-behavior: none; }
 .bubble__files { display: block; }
 .bubble__files.is-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
   gap: 5px;
 }
 .bubble__tile {
@@ -1241,7 +1245,7 @@ body { overscroll-behavior: none; }
   padding: 1px 5px; border-radius: 3px;
 }
 .bubble__tile-name {
-  position: absolute; left: 6px; right: 6px; bottom: 6px;
+  position: absolute; left: 5px; right: 5px; bottom: 5px;
   display: block;
   font-size: var(--t5); font-weight: 600; letter-spacing: 0;
   color: var(--ink-1);
@@ -1734,6 +1738,32 @@ body { overscroll-behavior: none; }
 /* 읽음 표시 */
 .msg__read { font-size: var(--t5); font-weight: 600; letter-spacing: 0; color: var(--accent); }
 
+/* 뷰어 편집 칸 */
+.viewer__fields { margin-bottom: var(--s5); }
+.field-area {
+  width: 100%;
+  min-height: 72px;
+  border-radius: var(--r-md);
+  padding: 10px 12px;
+  font-size: 14px;
+  line-height: 1.6;
+  background: var(--canvas);
+}
+.viewer__delete { width: 100%; margin-top: var(--s4); }
+
+/* 전송 대기 중인 자료 미리보기 */
+.pend-thumbs { flex: none; display: flex; gap: 3px; }
+.pend-thumb {
+  width: 28px; height: 28px;
+  border-radius: 6px;
+  background: var(--media);
+  overflow: hidden;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--ink-3);
+}
+.pend-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.pend-thumb--more { font-size: var(--t5); font-weight: 700; color: var(--ink-2); background: var(--line); }
+
 /* ── 링크형 버튼 ──────────────────────────────────────────────── */
 .link-btn {
   min-height: var(--tap); padding: 0 var(--s3);
@@ -2018,6 +2048,8 @@ var S = {
   viewerId: '',
   editing: false,
   draftEdits: {},
+  draftName: null,
+  draftNote: null,
   histOpen: false,
   callLog: {},
   call: null,
@@ -2084,6 +2116,14 @@ function metricsOf(f) {
     return v == null ? m : [m[0], v, m[2], m[3], true];
   });
 }
+function nameOf(f) {
+  var e = S.fileEdits[f.id];
+  return (e && e.name) || f.name;
+}
+function noteOf(f) {
+  var e = S.fileEdits[f.id];
+  return (e && e.note != null) ? e.note : (f.note || '');
+}
 function isEdited(f) {
   return !!(S.fileEdits[f.id] && Object.keys(S.fileEdits[f.id]).length);
 }
@@ -2108,9 +2148,25 @@ function historyOf(id) {
 }
 
 /* 편집 저장. 바뀐 항목만 히스토리와 감사 로그에 남깁니다 — 의료 자료라 흔적이 필요합니다. */
-function saveFileEdits(f, draft) {
+function saveFileEdits(f, draft, name, note) {
   var base = S.fileEdits[f.id] || {};
   var next = {}, changes = [];
+
+  /* 이름과 메모도 계측값과 같은 자리에 쌓습니다 — 무엇이 바뀌었는지
+     한 곳에서 보여야 하기 때문입니다. */
+  if (name != null) {
+    var nv = String(name).trim();
+    if (nv && nv !== f.name) { next.name = nv; changes.push({ label:'자료 이름', from:f.name, to:nv }); }
+    else if (base.name && (!nv || nv === f.name)) { changes.push({ label:'자료 이름', from:base.name, to:f.name }); }
+  } else if (base.name) { next.name = base.name; }
+
+  if (note != null) {
+    var ov = String(note).trim();
+    var cur = base.note == null ? (f.note || '') : base.note;
+    if (ov !== cur) changes.push({ label:'설명', from:cur || '(없음)', to:ov || '(없음)' });
+    if (ov !== (f.note || '')) next.note = ov;
+  } else if (base.note != null) { next.note = base.note; }
+
   f.metrics.forEach(function (m, i) {
     var cur = base[i] == null ? m[1] : base[i];
     var val = draft[i] == null ? cur : String(draft[i]).trim();
@@ -2129,7 +2185,7 @@ function saveFileEdits(f, draft) {
   }).concat(historyOf(f.id));
 
   AUDIT_ROWS.unshift(['방금', who, '계측 수정',
-    roomById(fileRoom(f.id)).name + ' · ' + f.name + ' · ' + changes.length + '개 항목',
+    roomById(fileRoom(f.id)).name + ' · ' + nameOf(f) + ' · ' + changes.length + '개 항목',
     'Web · 협진톡', 'edit']);
   saveEdits();
   return changes.length;
@@ -2852,14 +2908,13 @@ function msgView(m, prev) {
         + ' style="' + (m.body ? 'margin-top:9px' : 'margin-top:0') + '">'
         + recs.map(function (f) {
             return '<button type="button" class="bubble__tile" data-act="openViewer" data-arg="' + esc(f.id) + '"'
-              + ' aria-label="' + esc(f.name) + ' 크게 보기">'
+              + ' aria-label="' + esc(nameOf(f)) + ' 크게 보기">'
               + (f.url
                   ? '<img class="bubble__tile-img" src="' + esc(f.url) + '" alt="">'
-                  : '<span class="bubble__tile-ph">' + ic('file', 18) + '</span>')
+                  : '<span class="bubble__tile-ph">' + ic(tileIcon(f.tag), 20) + '</span>')
               + '<span class="bubble__tile-tag">' + esc(f.tag) + '</span>'
-              + (recs.length === 1
-                  ? '<span class="bubble__tile-name truncate">' + esc(f.name) + '</span>'
-                  : '')
+              /* 몇 장이든 이름은 늘 보입니다 — 무엇을 올렸는지 모르면 소용이 없습니다 */
+              + '<span class="bubble__tile-name truncate">' + esc(nameOf(f)) + '</span>'
             + '</button>';
           }).join('')
       + '</span>';
@@ -3015,7 +3070,8 @@ function topicBar(room) {
         ? '<p class="topic-hint">' + ic('list', 14)
           + '<span>문의가 길어지면 <strong>시스템이 대화를 읽고 주제를 나눕니다.</strong> '
           + '나누는 기준은 대화 내용이고, 수동으로 문의를 나눌 필요가 없습니다.</span></p>'
-        : '');
+        : '')
+  + '</div>';
 }
 
 function roomView() {
@@ -3096,11 +3152,20 @@ function roomView() {
     + '<div class="thread" data-sk="thread" id="thread">' + thread + '</div>'
     + '<div class="composer">'
       + (S.pendingFile && S.pendingFile.items.length
-          ? '<div class="attach-pending">' + ic('check', 16)
+          ? '<div class="attach-pending">'
+            + '<span class="pend-thumbs">'
+              + S.pendingFile.items.slice(0, 4).map(function (x) {
+                  return '<span class="pend-thumb" title="' + esc(x.name) + '">'
+                    + (x.url ? '<img src="' + esc(x.url) + '" alt="">' : ic(tileIcon(x.tag), 14))
+                  + '</span>';
+                }).join('')
+              + (S.pendingFile.items.length > 4
+                  ? '<span class="pend-thumb pend-thumb--more">+' + (S.pendingFile.items.length - 4) + '</span>'
+                  : '')
+            + '</span>'
             + '<span class="grow truncate">'
               + '<strong>자료 ' + S.pendingFile.items.length + '건</strong> '
-              + esc(S.pendingFile.items.map(function (x) { return x.tag; })
-                  .filter(function (t, i, ar) { return ar.indexOf(t) === i; }).join(' · '))
+              + esc(S.pendingFile.items.map(function (x) { return x.desc || x.name; }).join(', '))
               + '<span class="t5" style="display:block;font-weight:500;letter-spacing:0">'
                 + esc((S.pendingFile.part || '').trim() || '부위·소견 없음') + ' · 환자 정보 삭제됨</span>'
             + '</span>'
@@ -3133,28 +3198,28 @@ function roomView() {
 /* 격자용 썸네일 카드 */
 function fileCard(f) {
   return '<button type="button" class="file-card" data-act="openViewer" data-arg="' + esc(f.id) + '"'
-    + ' aria-label="' + esc(f.name) + ' 크게 보기">'
+    + ' aria-label="' + esc(nameOf(f)) + ' 크게 보기">'
     + '<span class="file-card__thumb">'
       + (f.url ? '<img class="file-card__img" src="' + esc(f.url) + '" alt="">' : '')
       + '<span class="file-card__tag">' + esc(f.tag) + '</span>'
       + (isEdited(f) ? '<span class="file-card__edited">수정됨</span>' : '')
-      + (f.url ? '' : '<span class="file-card__ph">' + ic('image', 18) + '</span>')
+      + (f.url ? '' : '<span class="file-card__ph">' + ic(tileIcon(f.tag), 20) + '</span>')
     + '</span>'
-    + '<span class="file-card__name truncate">' + esc(f.name) + '</span>'
+    + '<span class="file-card__name truncate">' + esc(nameOf(f)) + '</span>'
   + '</button>';
 }
 
 /* 좁은 열(패널)용 가로 행. 카드보다 훨씬 잘 훑힙니다. */
 function fileRow(f) {
   return '<button type="button" class="file-row" data-act="openViewer" data-arg="' + esc(f.id) + '"'
-    + ' aria-label="' + esc(f.name) + ' 크게 보기">'
+    + ' aria-label="' + esc(nameOf(f)) + ' 크게 보기">'
     + '<span class="file-row__thumb">'
       + (f.url ? '<img src="' + esc(f.url) + '" alt="">' : '')
       + '<span class="file-row__tag">' + esc(f.tag) + '</span>'
       + (isEdited(f) ? '<span class="viewer__item-dot"></span>' : '')
     + '</span>'
     + '<span class="file-row__text">'
-      + '<span class="file-row__name truncate">' + esc(f.name) + '</span>'
+      + '<span class="file-row__name truncate">' + esc(nameOf(f)) + '</span>'
       + '<span class="file-row__cap truncate">' + esc(captionOf(f) || f.when) + '</span>'
     + '</span>'
   + '</button>';
@@ -3184,13 +3249,13 @@ function fileDetail(f) {
   return '<div class="file-detail">'
     + '<div class="file-detail__head">'
       + '<span class="badge">' + esc(f.tag) + '</span>'
-      + '<span class="t3-strong grow truncate">' + esc(f.name) + '</span>'
+      + '<span class="t3-strong grow truncate">' + esc(nameOf(f)) + '</span>'
       + (isEdited(f) ? '<span class="badge badge--warn">수정됨</span>' : '')
       + '<span class="t5" style="color:var(--ink-3);font-weight:500;letter-spacing:0">'
         + esc(f.when) + ' · ' + esc(f.size || '') + '</span>'
     + '</div>'
     + '<div class="metric-grid">' + metricRows(f, false) + '</div>'
-    + (f.note ? '<p class="t4" style="margin:var(--s4) 0 0;color:var(--ink-2)">' + esc(f.note) + '</p>' : '')
+    + (noteOf(f) ? '<p class="t4" style="margin:var(--s4) 0 0;color:var(--ink-2)">' + esc(noteOf(f)) + '</p>' : '')
     + '<button type="button" class="btn btn--quiet" style="width:100%;margin-top:var(--s5)"'
       + ' data-act="openViewer" data-arg="' + esc(f.id) + '">'
       + ic('expand', 16) + '크게 보기 · 계측 수정</button>'
@@ -3214,7 +3279,7 @@ function viewerView() {
       + '<div class="viewer__head">'
         + '<span class="badge">' + esc(f.tag) + '</span>'
         + '<div class="grow truncate">'
-          + '<div class="t2 truncate">' + esc(f.name) + '</div>'
+          + '<div class="t2 truncate">' + esc(nameOf(f)) + '</div>'
           + '<div class="t5" style="color:var(--ink-3);font-weight:500;letter-spacing:0">'
             + esc(roomById(rid).name) + ' · ' + esc(f.when)
             + (f.size ? ' · ' + esc(f.size) : '')
@@ -3238,7 +3303,7 @@ function viewerView() {
                   + (isEdited(x) ? '<span class="viewer__item-dot" title="수정됨"></span>' : '')
                 + '</span>'
                 + '<span class="viewer__item-text">'
-                  + '<span class="viewer__item-name truncate">' + esc(x.name) + '</span>'
+                  + '<span class="viewer__item-name truncate">' + esc(nameOf(x)) + '</span>'
                   + '<span class="viewer__item-when">' + esc(x.when) + '</span>'
                 + '</span>'
               + '</button>';
@@ -3247,8 +3312,8 @@ function viewerView() {
         + '<div class="viewer__stage">'
           + '<div class="viewer__image">'
             + (f.url
-                ? '<img class="viewer__img" src="' + esc(f.url) + '" alt="' + esc(f.name) + '">'
-                : '<span class="t4" style="color:var(--ink-3)">' + esc(f.name) + '</span>')
+                ? '<img class="viewer__img" src="' + esc(f.url) + '" alt="' + esc(nameOf(f)) + '">'
+                : '<span class="t4" style="color:var(--ink-3)">' + esc(nameOf(f)) + '</span>')
             + '<span class="viewer__tag">' + esc(f.tag) + '</span>'
           + '</div>'
           + (list.length > 1
@@ -3273,18 +3338,34 @@ function viewerView() {
                 : '<button type="button" class="link-btn" data-act="startEdit">'
                   + ic('pencil', 15) + '수정</button>')
           + '</div>'
-          + (f.info && infoLine(f.info)
-              ? '<div class="attach-info">'
-                + (f.info.side ? '<div class="metric-row"><span class="metric-row__k">측</span>'
-                    + '<span class="metric-row__v">' + esc(f.info.side) + '</span></div>' : '')
-                + (f.info.part ? '<div class="metric-row"><span class="metric-row__k">부위 · 소견</span>'
-                    + '<span class="metric-row__v">' + esc(f.info.part) + '</span></div>' : '')
-                + (f.info.phase ? '<div class="metric-row"><span class="metric-row__k">촬영 시점</span>'
-                    + '<span class="metric-row__v">' + esc(f.info.phase) + '</span></div>' : '')
+
+          /* 이름·설명도 고칠 수 있어야 합니다. 자동으로 붙은 이름이 틀리면
+             대화창 캡션과 자료 목록이 다 같이 틀린 채로 남기 때문입니다. */
+          + (editing
+              ? '<div class="viewer__fields">'
+                + labeled('vname', '자료 이름', false,
+                    field({ k:'vname', action:'fileName', value: S.draftName == null ? f.name : S.draftName,
+                            ph:'예: 우측 기립 전후면' }))
+                + '<div style="height:var(--s4)"></div>'
+                + '<label class="field-label" for="vnote">설명 · 메모</label>'
+                + '<textarea class="field-area" id="vnote" data-k="vnote" data-input="fileNote"'
+                  + ' rows="3" placeholder="이 자료에 대해 남길 말을 적습니다">'
+                  + esc(S.draftNote == null ? (f.note || '') : S.draftNote) + '</textarea>'
               + '</div>'
+              : (f.info && infoLine(f.info)
+                  ? '<div class="attach-info">'
+                    + (f.info.part ? '<div class="metric-row"><span class="metric-row__k">부위 · 소견</span>'
+                        + '<span class="metric-row__v">' + esc(f.info.part) + '</span></div>' : '')
+                    + (f.info.desc ? '<div class="metric-row"><span class="metric-row__k">설명</span>'
+                        + '<span class="metric-row__v">' + esc(f.info.desc) + '</span></div>' : '')
+                  + '</div>'
+                  : ''))
+
+          + (editing || metricsOf(f).length
+              ? '<div class="' + cls('metric-list', editing && 'is-editing') + '">'
+                + (editing && f.metrics.length ? '<div class="field-label">계측값</div>' : '')
+                + metricRows(f, editing) + '</div>'
               : '')
-          + '<div class="' + cls('metric-list', editing && 'is-editing') + '">'
-            + metricRows(f, editing) + '</div>'
           + (!f.metrics.length && !editing
               ? '<p class="field-hint">자동 계측 결과가 아직 없습니다. 올린 사람이 적은 정보만 있습니다.</p>'
               : '')
@@ -3295,7 +3376,11 @@ function viewerView() {
                   + '<button type="button" class="btn btn--quiet" data-act="cancelEdit">취소</button>'
                   + '<button type="button" class="btn btn--primary grow" data-act="saveEdit">저장</button>'
                 + '</div>'
-              : (f.note ? '<p class="t4" style="margin:var(--s5) 0 0;color:var(--ink-2)">' + esc(f.note) + '</p>' : ''))
+                + (f.uploaded
+                    ? '<button type="button" class="btn btn--danger viewer__delete" data-act="deleteFile">'
+                      + ic('trash', 16) + '이 자료 빼기</button>'
+                    : '<p class="field-hint">처음부터 있던 자료는 뺄 수 없습니다.</p>')
+              : (noteOf(f) ? '<p class="t4" style="margin:var(--s5) 0 0;color:var(--ink-2)">' + esc(noteOf(f)) + '</p>' : ''))
 
           + (hist.length
               ? '<div class="viewer__hist">'
@@ -3448,7 +3533,7 @@ function homeScreen() {
         return '<button type="button" class="result-card" data-act="openViewer" data-arg="' + esc(o.file.id) + '">'
           + '<span class="row" style="gap:var(--s2);margin-bottom:4px">'
             + '<span class="badge">' + esc(o.file.tag) + '</span>'
-            + '<span class="t4-strong grow truncate">' + esc(o.room.name) + ' · ' + esc(o.file.name) + '</span>'
+            + '<span class="t4-strong grow truncate">' + esc(o.room.name) + ' · ' + esc(nameOf(o.file)) + '</span>'
             + '<span class="badge badge--warn">' + o.warn + '</span>'
           + '</span>'
           + '<span class="t4" style="display:block;color:var(--ink-2)">' + esc(captionOf(o.file)) + '</span>'
@@ -3805,6 +3890,13 @@ function analysisDigest(roomId) {
 var ATTACH_MAX = 10;
 
 /* 파일 이름과 MIME으로 종류를 추론합니다. 의사가 매번 고르게 하지 않습니다. */
+function tileIcon(tag) {
+  if (tag === '영상') return 'video';
+  if (tag === '문서' || tag === 'PDF') return 'file';
+  if (tag === '사진') return 'image';
+  return 'chart';
+}
+
 function inferTag(name, type) {
   var n = String(name || '').toLowerCase();
   if (/\.(dcm|dicom)$/.test(n)) return 'X-ray';
@@ -3838,7 +3930,7 @@ function attachSheetBody() {
         + '<span class="up-item__thumb">'
           + (it.url
               ? '<img src="' + esc(it.url) + '" alt="">'
-              : '<span class="up-item__ext">' + esc(it.tag) + '</span>')
+              : ic(tileIcon(it.tag), 20))
         + '</span>'
         + '<span class="grow truncate">'
           + '<span class="t4-strong truncate" style="display:block">' + esc(it.name) + '</span>'
@@ -4226,6 +4318,7 @@ var ACTIONS = {
           fileName: it.name,
           metrics: [],
           info: { part: part, desc: (it.desc || '').trim() },
+          uploaded: true,
           note: '올린 사람이 적은 정보입니다. 자동 계측은 아직 없습니다.'
         };
       });
@@ -4257,12 +4350,33 @@ var ACTIONS = {
   closeViewer: function () { S.viewerId = ''; S.editing = false; S.draftEdits = {}; },
   viewerPrev: function () { stepViewer(-1); },
   viewerNext: function () { stepViewer(1); },
-  startEdit: function () { S.editing = true; S.draftEdits = {}; },
-  cancelEdit: function () { S.editing = false; S.draftEdits = {}; },
+  startEdit: function () {
+    S.editing = true; S.draftEdits = {}; S.draftName = null; S.draftNote = null;
+  },
+  cancelEdit: function () {
+    S.editing = false; S.draftEdits = {}; S.draftName = null; S.draftNote = null;
+  },
   saveEdit: function () {
     var f = fileById(fileRoom(S.viewerId), S.viewerId);
-    if (f) saveFileEdits(f, S.draftEdits);
-    S.editing = false; S.draftEdits = {};
+    if (f) saveFileEdits(f, S.draftEdits, S.draftName, S.draftNote);
+    S.editing = false; S.draftEdits = {}; S.draftName = null; S.draftNote = null;
+  },
+  deleteFile: function () {
+    var rid = fileRoom(S.viewerId);
+    var list = S.extraFiles[rid] || [];
+    var i = list.map(function (f) { return f.id; }).indexOf(S.viewerId);
+    if (i < 0) return;
+    var gone = list[i];
+    list.splice(i, 1);
+    AUDIT_ROWS.unshift(['방금', PEOPLE[S.me].name, '삭제',
+      roomById(rid).name + ' · ' + gone.name, 'Web · 협진톡', 'delete']);
+    /* 이 자료를 물고 있던 메시지에서도 떼어냅니다 */
+    Object.keys(S.sent).forEach(function (k) {
+      S.sent[k].forEach(function (m) {
+        if (m.fileIds) m.fileIds = m.fileIds.filter(function (id) { return id !== gone.id; });
+      });
+    });
+    S.viewerId = ''; S.editing = false;
   },
   toggleHist: function () { S.histOpen = !S.histOpen; },
   resetDemo: function () { resetEdits(); S.viewerId = ''; },
@@ -4363,6 +4477,8 @@ var INPUTS = {
   formField: function (val, arg) { S.form[arg] = val; },
   onbLicense: function (val) { S.onbLicense = val; },
   metricEdit: function (val, arg) { S.draftEdits[arg] = val; },
+  fileName: function (val) { S.draftName = val; },
+  fileNote: function (val) { S.draftNote = val; },
   attachPart: function (val) { if (S.attach) S.attach.part = val; },
   attachDesc: function (val, arg) {
     if (S.attach && S.attach.items[arg]) S.attach.items[arg].desc = val;
