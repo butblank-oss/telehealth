@@ -944,7 +944,16 @@ body { overscroll-behavior: none; }
 /* ── 레일 ─────────────────────────────────────────────────────── */
 .rail__head { flex: none; display: flex; align-items: center; gap: 9px; padding: var(--s6) var(--s6) var(--s4); }
 .rail__tools { flex: none; padding: 0 var(--s6) var(--s4); display: flex; flex-direction: column; gap: var(--s3); }
-.rail__tabs { flex: none; display: flex; gap: var(--s2); padding: 5px var(--s6) var(--s4); overflow-x: auto; }
+/* 상태 탭은 5개라 레일 폭(292px)에 한 줄로 들어가지 않습니다.
+   가로 스크롤로 잘리면 뒤쪽 탭을 못 찾으므로 줄바꿈으로 전부 노출합니다.
+   row-gap 10px은 34px 칩의 44px 히트 영역이 위아래로 겹치지 않는 최소값입니다. */
+.rail__tabs {
+  flex: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px var(--s2);
+  padding: 5px var(--s6) var(--s5);
+}
 .rail__foot { flex: none; border-top: 1px solid var(--line); padding: var(--s4) var(--s6); display: flex; align-items: center; gap: 9px; }
 
 .logo {
@@ -1700,7 +1709,7 @@ function roomsScreen() {
       + '<div class="grow"><div class="t2">협진톡</div></div>'
       + iconBtn('openNew', '새 협진 요청', ic('plus', 20), 'btn--quiet')
     + '</div>'
-    + '<div class="rail__tabs" style="background:var(--surface);padding-top:var(--s3);border-bottom:1px solid var(--line)"'
+    + '<div class="rail__tabs" style="background:var(--surface);border-bottom:1px solid var(--line)"'
       + ' role="group" aria-label="상태 필터">' + stateTabs() + '</div>'
     + '<div class="screen__body" data-sk="rooms" style="padding:var(--s4)">' + roomListBody() + '</div>'
   + '</div>' + (unread ? '' : '');
