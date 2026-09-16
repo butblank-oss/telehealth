@@ -87,10 +87,12 @@
   --sh-modal: 0 24px 48px -16px rgba(20, 24, 29, .45);
 
   /* Layout */
-  --rail-w: 292px;
+  --rail-w: 432px;   /* 상태 탭 5개(전체·진행 중·안 읽음·종료·보관함)가 줄바꿈 없이 들어가는 폭 + 여유 8px */
+  --rail-min-w: 260px;
+  --rail-max-w: 560px;
   --panel-w: 264px;
   --main-min: 440px;
-  --shell-min: 1010px;
+  --shell-min: 1150px;
   --tap: 44px; /* 최소 터치 타깃 */
 }
 
@@ -190,10 +192,30 @@ button:focus-visible,
   flex: none;
   width: var(--rail-w);
   min-height: 0;
-  border-right: 1px solid var(--line);
   background: var(--surface);
   display: flex;
   flex-direction: column;
+}
+
+/* 레일 폭 조절 손잡이. 시각적으로는 얇은 구분선(1px)이지만
+   히트 영역은 ::before로 넓혀 드래그하기 쉽게 합니다. */
+.rail-resizer {
+  flex: none;
+  width: 1px;
+  min-height: 0;
+  background: var(--line);
+  position: relative;
+  cursor: col-resize;
+  touch-action: none;
+}
+.rail-resizer::before {
+  content: '';
+  position: absolute;
+  top: 0; bottom: 0;
+  left: -5px; right: -5px;
+}
+.rail-resizer:hover, .rail-resizer:focus-visible {
+  background: var(--accent);
 }
 
 .main {
@@ -927,7 +949,8 @@ body { overscroll-behavior: none; }
   height: 100dvh;
   position: relative;
   background: var(--surface);
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: hidden;
 }
 
 /* 셸은 프레임이 아니라 앱 본체. 높이는 부모가 확정합니다. */
@@ -944,15 +967,15 @@ body { overscroll-behavior: none; }
 /* ── 레일 ─────────────────────────────────────────────────────── */
 .rail__head { flex: none; display: flex; align-items: center; gap: 9px; padding: var(--s6) var(--s6) var(--s4); }
 .rail__tools { flex: none; padding: 0 var(--s6) var(--s4); display: flex; flex-direction: column; gap: var(--s3); }
-/* 상태 탭은 5개라 레일 폭(292px)에 한 줄로 들어가지 않습니다.
-   가로 스크롤로 잘리면 뒤쪽 탭을 못 찾으므로 줄바꿈으로 전부 노출합니다.
-   row-gap 10px은 34px 칩의 44px 히트 영역이 위아래로 겹치지 않는 최소값입니다. */
+/* 상태 탭 5개는 기본 레일 폭(432px)에서 줄바꿈 없이 한 줄에 다 들어갑니다.
+   레일을 직접 좁게 줄인 경우에만 가로 스크롤로 대응합니다. */
 .rail__tabs {
   flex: none;
   display: flex;
-  flex-wrap: wrap;
-  gap: 10px var(--s2);
+  flex-wrap: nowrap;
+  gap: var(--s2);
   padding: 5px var(--s6) var(--s5);
+  overflow-x: auto;
 }
 .rail__foot { flex: none; border-top: 1px solid var(--line); padding: var(--s4) var(--s6); display: flex; align-items: center; gap: 9px; }
 
@@ -2296,10 +2319,16 @@ function mainArea() {
   return roomView();
 }
 
+function railResizer() {
+  return '<div class="rail-resizer" data-resizer="1" role="separator" aria-orientation="vertical"'
+    + ' aria-label="환자 목록 폭 조절" aria-valuemin="' + RAIL_MIN + '" aria-valuemax="' + RAIL_MAX + '"'
+    + ' aria-valuenow="' + railWidth + '" tabindex="0"></div>';
+}
+
 function appView() {
   var showPanel = !isMobile() && S.page === 'room' && S.panelOpen;
   return '<div class="shell">'
-      + (isMobile() ? '' : railView())
+      + (isMobile() ? '' : railView() + railResizer())
       + mainArea()
       + (showPanel ? panelView() : '')
     + '</div>'
@@ -2314,7 +2343,35 @@ function view() {
   return appView();
 }
 
-/* ── 18. 동작 ──────────────────────────────────────────────────── */
+/* ── 18. 레일 폭 조절 ──────────────────────────────────────────── */
+/* 환자 목록 폭은 뷰어마다 취향이 다를 수 있어 직접 늘리고 줄일 수 있게 합니다.
+   상태(S)가 아니라 여기서만 관리합니다 — 서버도 없고 다른 뷰어와 공유할 값도
+   아닌, 이 브라우저 안에서만 기억하면 되는 화면 설정이기 때문입니다. */
+
+var RAIL_MIN = 260;
+var RAIL_MAX = 560;
+var RAIL_DEFAULT = 432;
+
+function loadRailWidth() {
+  try {
+    var v = parseInt(localStorage.getItem('hjt-rail-w'), 10);
+    if (v >= RAIL_MIN && v <= RAIL_MAX) return v;
+  } catch (e) {}
+  return RAIL_DEFAULT;
+}
+function saveRailWidth(v) {
+  try { localStorage.setItem('hjt-rail-w', String(v)); } catch (e) {}
+}
+function setRailWidth(v) {
+  v = Math.max(RAIL_MIN, Math.min(RAIL_MAX, Math.round(v)));
+  document.documentElement.style.setProperty('--rail-w', v + 'px');
+  var handle = document.querySelector('[data-resizer]');
+  if (handle) handle.setAttribute('aria-valuenow', v);
+  return v;
+}
+var railWidth = setRailWidth(loadRailWidth());
+
+/* ── 19. 동작 ──────────────────────────────────────────────────── */
 
 var scrollMem = {};
 var threadToBottom = true;
@@ -2468,7 +2525,7 @@ var INPUTS = {
   onbLicense: function (val) { S.onbLicense = val; }
 };
 
-/* ── 19. 렌더 ──────────────────────────────────────────────────── */
+/* ── 20. 렌더 ──────────────────────────────────────────────────── */
 
 var app = document.getElementById('app');
 
@@ -2506,7 +2563,7 @@ function render() {
   syncHash();
 }
 
-/* ── 20. 이벤트 ────────────────────────────────────────────────── */
+/* ── 21. 이벤트 ────────────────────────────────────────────────── */
 
 app.addEventListener('click', function (e) {
   var stop = e.target.closest('[data-stop]');
@@ -2547,6 +2604,53 @@ app.addEventListener('keydown', function (e) {
   render();
 });
 
+/* 레일 폭 드래그. 픽셀 단위로 계속 바뀌는 값이라 render()를 통하지 않고
+   CSS 변수를 직접 건드립니다 — 매 프레임 전체 HTML을 다시 그리면 무겁고,
+   어차피 이 폭은 S(앱 상태)가 아니라 화면 설정이라 재렌더 대상이 아닙니다. */
+app.addEventListener('pointerdown', function (e) {
+  var handle = e.target.closest('[data-resizer]');
+  if (!handle) return;
+  e.preventDefault();
+  var startX = e.clientX;
+  var startW = railWidth;
+  try { handle.setPointerCapture(e.pointerId); } catch (err) {}
+  document.body.style.cursor = 'col-resize';
+  document.body.style.userSelect = 'none';
+
+  function onMove(ev) {
+    railWidth = setRailWidth(startW + (ev.clientX - startX));
+  }
+  function onUp() {
+    document.removeEventListener('pointermove', onMove);
+    document.removeEventListener('pointerup', onUp);
+    document.body.style.cursor = '';
+    document.body.style.userSelect = '';
+    saveRailWidth(railWidth);
+  }
+  document.addEventListener('pointermove', onMove);
+  document.addEventListener('pointerup', onUp);
+});
+
+/* 더블클릭으로 기본 폭으로 되돌립니다 */
+app.addEventListener('dblclick', function (e) {
+  if (!e.target.closest('[data-resizer]')) return;
+  railWidth = setRailWidth(RAIL_DEFAULT);
+  saveRailWidth(railWidth);
+});
+
+/* 키보드로도 조절할 수 있게 — 방향키 16px, Shift+방향키 48px, Home/End는 양끝 */
+app.addEventListener('keydown', function (e) {
+  var handle = e.target.closest('[data-resizer]');
+  if (!handle) return;
+  var step = e.shiftKey ? 48 : 16;
+  if (e.key === 'ArrowLeft') { e.preventDefault(); railWidth = setRailWidth(railWidth - step); }
+  else if (e.key === 'ArrowRight') { e.preventDefault(); railWidth = setRailWidth(railWidth + step); }
+  else if (e.key === 'Home') { e.preventDefault(); railWidth = setRailWidth(RAIL_MIN); }
+  else if (e.key === 'End') { e.preventDefault(); railWidth = setRailWidth(RAIL_MAX); }
+  else { return; }
+  saveRailWidth(railWidth);
+});
+
 /* 레이아웃이 PC↔모바일을 넘나들 때만 다시 그립니다 */
 var mq = window.matchMedia('(max-width: 1009px)');
 var onMq = function () {
@@ -2556,7 +2660,7 @@ var onMq = function () {
 if (mq.addEventListener) mq.addEventListener('change', onMq);
 else mq.addListener(onMq);
 
-/* ── 21. 해시 라우팅 ───────────────────────────────────────────── */
+/* ── 22. 해시 라우팅 ───────────────────────────────────────────── */
 
 var PAGES = ['login','onboard','admin','rooms','room','search','notis','me'];
 var hashLock = false;
@@ -2588,7 +2692,7 @@ window.addEventListener('hashchange', function () {
   if (applyHash()) render();
 });
 
-/* ── 22. 시작 ──────────────────────────────────────────────────── */
+/* ── 23. 시작 ──────────────────────────────────────────────────── */
 
 applyHash();
 render();
