@@ -1414,6 +1414,55 @@ body { overscroll-behavior: none; }
 }
 .viewer__nav { flex: none; display: flex; align-items: center; justify-content: center; gap: var(--s5); }
 
+/* 뷰어 왼쪽 자료 리스트 */
+.viewer__list {
+  flex: none;
+  width: 168px;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--s4);
+  border-right: 1px solid var(--line);
+  background: var(--surface);
+}
+.viewer__list-head {
+  font-size: var(--t5); font-weight: 700; letter-spacing: var(--t5-ls);
+  color: var(--ink-3); padding: 0 var(--s2) var(--s3);
+}
+.viewer__item {
+  display: flex; align-items: center; gap: var(--s3);
+  width: 100%; min-height: 52px;
+  padding: var(--s2);
+  border-radius: var(--r-md);
+  margin-bottom: 2px;
+  text-align: left;
+}
+.viewer__item:hover { background: var(--canvas); }
+.viewer__item.is-active { background: var(--accent-soft); }
+.viewer__item-thumb {
+  position: relative;
+  flex: none; width: 44px; height: 36px;
+  border-radius: 7px; background: var(--media);
+}
+.viewer__item-tag {
+  position: absolute; top: 3px; left: 3px;
+  font-size: 10px; font-weight: 700;
+  color: var(--ink-1); background: rgba(255, 255, 255, .94);
+  padding: 0 4px; border-radius: 3px;
+}
+.viewer__item-dot {
+  position: absolute; right: 3px; bottom: 3px;
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--warn);
+}
+.viewer__item-text { flex: 1; min-width: 0; }
+.viewer__item-name { display: block; font-size: var(--t4); font-weight: 600; }
+.viewer__item.is-active .viewer__item-name { color: var(--accent-ink); }
+.viewer__item-when {
+  display: block;
+  font-size: var(--t5); font-weight: 500; letter-spacing: 0;
+  color: var(--ink-3);
+}
+
 .viewer__side {
   flex: none;
   width: 320px;
@@ -1462,13 +1511,40 @@ body { overscroll-behavior: none; }
 @media (max-width: 1009px) {
   .viewer-overlay { align-items: flex-end; padding: 0; }
   .viewer { max-width: none; border-radius: var(--r-xl) var(--r-xl) 0 0; max-height: 92dvh; }
-  .viewer__body { flex-direction: column; }
+  .viewer__body { flex-direction: column; overflow-y: auto; }
   .viewer__stage { flex: none; }
   .viewer__image { min-height: 180px; }
-  .viewer__side { width: auto; border-left: none; border-top: 1px solid var(--line); }
+  .viewer__side { width: auto; border-left: none; border-top: 1px solid var(--line); overflow: visible; }
+  /* 좁은 폭에서는 리스트를 가로 띠로 눕힙니다 */
+  .viewer__list {
+    width: auto;
+    display: flex;
+    gap: var(--s2);
+    overflow-x: auto;
+    overflow-y: hidden;
+    border-right: none;
+    border-bottom: 1px solid var(--line);
+    padding: var(--s3) var(--s4);
+  }
+  .viewer__list-head { display: none; }
+  .viewer__item { flex: none; width: auto; margin-bottom: 0; }
+  .viewer__item-text { display: none; }
+  .viewer__item-thumb { width: 52px; height: 40px; }
 }
 
 .home { max-width: 860px; margin: 0 auto; }
+
+.attach-file {
+  display: flex; align-items: center; gap: var(--s3);
+  padding: var(--s5);
+  border-radius: var(--r-md);
+  background: var(--ok-soft);
+  color: var(--ok);
+  font-size: var(--t4);
+}
+.attach-pending { align-items: flex-start; }
+.attach-info { margin-bottom: var(--s5); }
+.attach-info .metric-row { border-bottom: 1px solid var(--canvas-2); min-height: 36px; }
 
 /* ── 링크형 버튼 ──────────────────────────────────────────────── */
 .link-btn {
@@ -1728,7 +1804,7 @@ var S = {
   query: '',
   draft: '',
   star: false,
-  pendingFile: false,
+  pendingFile: null,
   sent: {},
   sheet: '',
   formTitle: '',
@@ -1745,6 +1821,8 @@ var S = {
   fileId: '',
   fileEdits: {},
   fileHistory: {},
+  extraFiles: {},
+  attach: null,
   viewerId: '',
   editing: false,
   draftEdits: {},
@@ -1788,7 +1866,7 @@ function threadMsgs(roomId, threadId) {
   return (MSGS[key] || []).concat(S.sent[key] || []);
 }
 function filesOf(roomId) {
-  return FILES[roomId] || [];
+  return (FILES[roomId] || []).concat(S.extraFiles[roomId] || []);
 }
 function fileById(roomId, id) {
   var list = filesOf(roomId);
@@ -1815,11 +1893,21 @@ function metricsOf(f) {
 function isEdited(f) {
   return !!(S.fileEdits[f.id] && Object.keys(S.fileEdits[f.id]).length);
 }
-/* 캡션은 앞 세 개 계측값에서 만듭니다 — 값을 고치면 캡션이 저절로 따라옵니다 */
+/* 캡션은 앞 세 개 계측값에서 만듭니다 — 값을 고치면 캡션이 저절로 따라옵니다.
+   계측이 아직 없는 자료(방금 올린 것)는 올릴 때 의사가 적은 정보를 씁니다. */
 function captionOf(f) {
   var ms = metricsOf(f).slice(0, 3);
-  if (!ms.length) return '';
-  return ms.map(function (m) { return (m[3] || m[0]) + ' ' + m[1]; }).join(' · ');
+  if (ms.length) return ms.map(function (m) { return (m[3] || m[0]) + ' ' + m[1]; }).join(' · ');
+  return infoLine(f.info);
+}
+function infoLine(info) {
+  if (!info) return '';
+  return [info.side, info.part, info.phase].filter(Boolean).join(' · ');
+}
+/* 의사가 적은 정보와 기계가 잰 값은 배지로 구분합니다 */
+function captionKind(f) {
+  if (isEdited(f)) return '수정됨';
+  return metricsOf(f).length ? '자동 계측' : '첨부 정보';
 }
 function historyOf(id) {
   return S.fileHistory[id] || [];
@@ -2484,7 +2572,7 @@ function msgView(m, prev) {
     var cap = captionOf(f);
     if (!cap) return '';
     return '<button type="button" class="bubble__caption" data-act="openViewer" data-arg="' + esc(f.id) + '">'
-      + '<span class="badge--auto">' + (isEdited(f) ? '수정됨' : '자동 계측') + '</span>'
+      + '<span class="badge--auto">' + captionKind(f) + '</span>'
       + '<span class="bubble__caption-text">' + esc(cap) + '</span>'
       + ic('next', 14)
     + '</button>';
@@ -2678,7 +2766,7 @@ function roomView() {
     }
   }
 
-  var canSend = S.draft.trim().length > 0 || S.pendingFile;
+  var canSend = S.draft.trim().length > 0 || !!S.pendingFile;
 
   return '<main class="main">'
     + banner
@@ -2705,7 +2793,13 @@ function roomView() {
     + '<div class="composer">'
       + (S.pendingFile
           ? '<div class="attach-pending">' + ic('check', 16)
-            + '<span class="grow">knee_standing_AP.dcm · 환자 정보 삭제됨</span>'
+            + '<span class="grow truncate">'
+              + '<strong>' + esc(S.pendingFile.tag || '자료') + '</strong> '
+              + esc(infoLine(S.pendingFile) || S.pendingFile.name)
+              + '<span class="t5" style="display:block;font-weight:500;letter-spacing:0">'
+                + esc(S.pendingFile.name) + ' · 환자 정보 삭제됨</span>'
+            + '</span>'
+            + '<button type="button" class="link-btn" data-act="attach" style="flex:none">고치기</button>'
             + iconBtn('clearFile', '첨부 취소', ic('x', 16), '') + '</div>'
           : '')
       + '<div class="composer__row">'
@@ -2741,7 +2835,7 @@ function fileCard(f, withCaption) {
     + '</span>'
     + (withCaption
         ? '<span class="file-card__caption">'
-          + '<span class="badge--auto">자동 계측</span> ' + esc(captionOf(f))
+          + '<span class="badge--auto">' + captionKind(f) + '</span> ' + esc(captionOf(f))
         + '</span>'
         : '')
   + '</button>';
@@ -2809,6 +2903,25 @@ function viewerView() {
       + '</div>'
 
       + '<div class="viewer__body">'
+        /* 왼쪽 리스트 — 이 방의 자료를 세워 두고 눌러서 바로 넘어갑니다 */
+        + '<nav class="viewer__list" aria-label="이 방의 자료">'
+          + '<div class="viewer__list-head">자료 ' + list.length + '건</div>'
+          + list.map(function (x) {
+              var on = x.id === f.id;
+              return '<button type="button" class="' + cls('viewer__item', on && 'is-active') + '"'
+                + ' data-act="openViewer" data-arg="' + esc(x.id) + '"'
+                + (on ? ' aria-current="true"' : '') + '>'
+                + '<span class="viewer__item-thumb">'
+                  + '<span class="viewer__item-tag">' + esc(x.tag) + '</span>'
+                  + (isEdited(x) ? '<span class="viewer__item-dot" title="수정됨"></span>' : '')
+                + '</span>'
+                + '<span class="viewer__item-text">'
+                  + '<span class="viewer__item-name truncate">' + esc(x.name) + '</span>'
+                  + '<span class="viewer__item-when">' + esc(x.when) + '</span>'
+                + '</span>'
+              + '</button>';
+            }).join('')
+        + '</nav>'
         + '<div class="viewer__stage">'
           + '<div class="viewer__image">'
             + '<span class="viewer__tag">' + esc(f.tag) + '</span>'
@@ -2827,7 +2940,8 @@ function viewerView() {
 
         + '<div class="viewer__side">'
           + '<div class="viewer__side-head">'
-            + '<span class="t5" style="color:var(--ink-3)">자동 계측</span>'
+            + '<span class="t5" style="color:var(--ink-3)">'
+              + (f.metrics.length ? '자동 계측' : '첨부 정보') + '</span>'
             + (isEdited(f) ? '<span class="badge badge--warn">수정됨</span>' : '')
             + '<span class="grow"></span>'
             + (editing
@@ -2835,8 +2949,21 @@ function viewerView() {
                 : '<button type="button" class="link-btn" data-act="startEdit">'
                   + ic('pencil', 15) + '수정</button>')
           + '</div>'
+          + (f.info && infoLine(f.info)
+              ? '<div class="attach-info">'
+                + (f.info.side ? '<div class="metric-row"><span class="metric-row__k">측</span>'
+                    + '<span class="metric-row__v">' + esc(f.info.side) + '</span></div>' : '')
+                + (f.info.part ? '<div class="metric-row"><span class="metric-row__k">부위 · 소견</span>'
+                    + '<span class="metric-row__v">' + esc(f.info.part) + '</span></div>' : '')
+                + (f.info.phase ? '<div class="metric-row"><span class="metric-row__k">촬영 시점</span>'
+                    + '<span class="metric-row__v">' + esc(f.info.phase) + '</span></div>' : '')
+              + '</div>'
+              : '')
           + '<div class="' + cls('metric-list', editing && 'is-editing') + '">'
             + metricRows(f, editing) + '</div>'
+          + (!f.metrics.length && !editing
+              ? '<p class="field-hint">자동 계측 결과가 아직 없습니다. 올린 사람이 적은 정보만 있습니다.</p>'
+              : '')
           + (editing
               ? '<p class="field-hint">고친 값은 대화창 캡션과 자료 목록에 함께 반영되고, '
                 + '누가 언제 무엇을 바꿨는지 남습니다.</p>'
@@ -3346,6 +3473,54 @@ function analysisDigest(roomId) {
   + '</div>';
 }
 
+var ATTACH_KINDS = ['X-ray','사진','영상','MRI','CT','문서'];
+var ATTACH_SIDES = ['우측','좌측','양측','해당 없음'];
+var ATTACH_PHASES = ['초진','경과 관찰','수술 전','수술 후'];
+
+function chipRow(group, options, current) {
+  return '<div class="row" style="flex-wrap:wrap;gap:var(--s2)">' + options.map(function (o) {
+    var on = current === o;
+    return '<button type="button" class="' + cls('chip', on && 'is-active') + '"'
+      + ' data-act="attachPick" data-arg="' + group + ':' + esc(o) + '"'
+      + ' aria-pressed="' + on + '">' + esc(o) + '</button>';
+  }).join('') + '</div>';
+}
+
+/* 자료를 올릴 때 기본 정보를 함께 적습니다.
+   전부 선택 입력입니다 — 제목만 쓰고 바로 시작한다는 이 서비스의 원칙 때문입니다.
+   다만 좌우는 눈에 띄게 둡니다. 정형외과에서 좌우가 뒤바뀌면 사고로 이어집니다. */
+function attachSheetBody() {
+  var a = S.attach || {};
+  return '<div class="attach-file">'
+      + ic('file', 18)
+      + '<span class="grow truncate"><strong>' + esc(a.name || 'knee_standing_AP.dcm') + '</strong>'
+        + '<span class="t5" style="display:block;font-weight:500;letter-spacing:0;color:var(--ok)">'
+        + '4.2MB · 환자 정보 삭제됨</span></span>'
+    + '</div>'
+
+    + '<div class="field-label" style="margin-top:var(--s7)">자료 종류</div>'
+    + chipRow('tag', ATTACH_KINDS, a.tag)
+
+    + '<div class="field-label" style="margin-top:var(--s7)">'
+      + '측 <span style="color:var(--warn);font-weight:600">좌우를 꼭 확인하세요</span></div>'
+    + chipRow('side', ATTACH_SIDES, a.side)
+
+    + '<div class="field-label" style="margin-top:var(--s7)">촬영 시점</div>'
+    + chipRow('phase', ATTACH_PHASES, a.phase)
+
+    + '<div style="margin-top:var(--s7)">'
+      + labeled('attachPart', '부위 · 소견', false,
+          field({ k:'attachPart', action:'attachPart', value:a.part || '',
+                  ph:'예: 무릎 내측 반월상연골 파열', lg:true }))
+      + '<p class="field-hint">' + (infoLine(a)
+          ? '이렇게 붙습니다 — ' + esc(infoLine(a))
+          : '비워도 올라갑니다. 적어두면 상대 의사가 무엇을 볼지 바로 압니다.') + '</p>'
+    + '</div>'
+
+    + '<div class="note-ok" style="margin-top:var(--s7)">'
+      + '환자 정보(DICOM 헤더)는 올릴 때 자동으로 지워집니다. 자료는 만료되지 않습니다.</div>';
+}
+
 function closeSheetBody() {
   var room = roomById(S.roomId);
   return '<p class="field-hint" style="margin:0 0 var(--s5)">'
@@ -3400,13 +3575,14 @@ function sheetView() {
     invite: { w:'modal--md',   title:'의사 초대',   sub:room.name + ' 방에 의사를 추가합니다', body:inviteSheetBody, action:'초대하기' },
     files:  { w:'modal--lg',   title:'자료 분석', sub:room.name + ' · ' + filesOf(room.id).length + '건 · 만료 없음', body:filesSheetBody, action:null },
     summary:{ w:'modal--lg',   title:'상담 요약', sub:room.name + ' · 대화에서 자동 정리', body:function () { return summaryBody(roomById(S.roomId)); }, action:null },
+    attach: { w:'modal--md',   title:'자료 첨부', sub:room.name + ' · 올리기 전에 기본 정보를 적습니다', body:attachSheetBody, action:'첨부하기' },
     close:  { w:'modal--lg',   title:'상담 종료', sub:room.name + ' · 종료하면 종료함으로 옮겨집니다', body:closeSheetBody, action:'요약 남기고 종료' },
     menu:   { w:'modal--sm',   title:'방 관리',     sub:room.name, body:menuSheetBody, action:null }
   }[sheet];
 
   var canSubmit = sheet === 'invite'
     ? DOCTORS.some(function (d) { return S.picks[d.k] && memberKeys().indexOf(d.k) < 0; })
-    : (sheet === 'close' ? true : S.formTitle.trim().length > 0);
+    : ((sheet === 'close' || sheet === 'attach') ? true : S.formTitle.trim().length > 0);
 
   return '<div class="overlay" data-act="closeSheet" role="dialog" aria-modal="true" aria-label="' + esc(conf.title) + '">'
     + '<div class="' + cls('modal', conf.w) + '" data-stop="1">'
@@ -3626,8 +3802,17 @@ var ACTIONS = {
   closeSearch: function () { S.searchOpen = false; S.query = ''; },
   clearGlobalQ: function () { S.globalQ = ''; },
 
-  attach: function () { S.pendingFile = true; },
-  clearFile: function () { S.pendingFile = false; },
+  attach: function () {
+    S.attach = { name:'knee_standing_AP.dcm', tag:'X-ray', side:'', phase:'', part:'' };
+    S.sheet = 'attach';
+  },
+  attachPick: function (v) {
+    var i = v.indexOf(':');
+    var k = v.slice(0, i), val = v.slice(i + 1);
+    if (!S.attach) return;
+    S.attach[k] = S.attach[k] === val ? '' : val;
+  },
+  clearFile: function () { S.pendingFile = null; },
   toggleStar: function () { S.star = !S.star; },
 
   send: function () {
@@ -3640,13 +3825,32 @@ var ACTIONS = {
     if (!tid) return;
     var key = room.id + tid;
     var msg = { who:S.me, when:'방금', body:text, star:S.star };
-    if (S.pendingFile) { msg.file = 'knee_standing_AP.dcm'; msg.fileSize = '4.2MB · 환자 정보 삭제됨'; }
+    var a = S.pendingFile;
+    if (a) {
+      /* 올린 자료를 이 방의 자료 목록에 등록하고 메시지에 연결합니다 —
+         그래야 대화창 캡션, 패널, 자료 분석, 뷰어에서 모두 같은 것을 봅니다. */
+      var fid = 'u' + Date.now();
+      var rec = {
+        id: fid,
+        name: (a.part || '').trim() || a.name || '첨부 자료',
+        tag: a.tag || '사진',
+        when: '방금',
+        size: '4.2MB',
+        metrics: [],
+        info: { side:a.side, part:(a.part || '').trim(), phase:a.phase },
+        note: '올린 사람이 적은 정보입니다. 자동 계측은 아직 없습니다.'
+      };
+      S.extraFiles[room.id] = (S.extraFiles[room.id] || []).concat([rec]);
+      msg.file = a.name || 'knee_standing_AP.dcm';
+      msg.fileSize = '4.2MB · 환자 정보 삭제됨';
+      msg.fileId = fid;
+    }
     S.sent[key] = (S.sent[key] || []).concat([msg]);
     room.last = text || '자료를 올렸습니다';
     room.when = '방금';
     S.draft = '';
     S.star = false;
-    S.pendingFile = false;
+    S.pendingFile = null;
     threadToBottom = true;
   },
 
@@ -3700,6 +3904,7 @@ var ACTIONS = {
 
   submitSheet: function () {
     if (S.sheet === 'close') { ACTIONS.confirmClose(); return; }
+    if (S.sheet === 'attach') { S.pendingFile = S.attach; S.attach = null; S.sheet = ''; return; }
     if (S.sheet === 'invite') {
       DOCTORS.forEach(function (d) {
         if (S.picks[d.k]) { S.joined[d.k] = true; delete S.removed[d.k]; }
@@ -3764,7 +3969,8 @@ var INPUTS = {
   formTitle: function (val) { S.formTitle = val; },
   formField: function (val, arg) { S.form[arg] = val; },
   onbLicense: function (val) { S.onbLicense = val; },
-  metricEdit: function (val, arg) { S.draftEdits[arg] = val; }
+  metricEdit: function (val, arg) { S.draftEdits[arg] = val; },
+  attachPart: function (val) { if (S.attach) S.attach.part = val; }
 };
 
 /* ── 19-2. 통화 ─────────────────────────────────────────────────
@@ -3882,12 +4088,31 @@ app.addEventListener('click', function (e) {
   render();
 });
 
+/* 한글 IME 대응.
+   입력마다 render()가 innerHTML을 갈아끼우면 조합 중인 입력칸이 새로 만들어져
+   조합이 끊깁니다 — "안녕"이 "ㅇㅏㄴㄴㅕㅇ"으로 확정되던 원인입니다.
+   조합 중에는 상태만 갱신하고 다시 그리지 않다가, 조합이 끝나면 그립니다. */
+var composing = false;
+
+app.addEventListener('compositionstart', function () { composing = true; });
+
+app.addEventListener('compositionend', function (e) {
+  composing = false;
+  var el = e.target;
+  if (!el.dataset || !el.dataset.input) return;
+  var fn = INPUTS[el.dataset.input];
+  if (!fn) return;
+  fn(el.value, el.dataset.arg);
+  render();
+});
+
 app.addEventListener('input', function (e) {
   var el = e.target;
   if (!el.dataset || !el.dataset.input) return;
   var fn = INPUTS[el.dataset.input];
   if (!fn) return;
   fn(el.value, el.dataset.arg);
+  if (composing || e.isComposing) return;
   render();
 });
 
@@ -3902,7 +4127,7 @@ document.addEventListener('keydown', function (e) {
 app.addEventListener('keydown', function (e) {
   var el = e.target;
   if (!el.dataset || !el.dataset.enter) return;
-  if (e.key !== 'Enter' || e.shiftKey || e.isComposing) return;
+  if (e.key !== 'Enter' || e.shiftKey || e.isComposing || composing || e.keyCode === 229) return;
   e.preventDefault();
   var spec = el.dataset.enter.split(':');
   ACTIONS[spec[0]](spec[1]);
