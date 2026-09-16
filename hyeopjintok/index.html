@@ -6,10 +6,10 @@
 <title>협진톡 — 의사 간 협진 메신저</title>
 <meta name="description" content="베트남 현지 의사와 한국 의사가 환자별로 대화하고 자료를 남기는 폐쇄형 협진 메신저. 환자 1명 = 방 1개, 자료 보관 기한 없음. 의료법 제34조 원격협력 구조의 의사 간 커뮤니케이션 도구입니다.">
 <meta name="robots" content="noindex">
-<meta name="theme-color" content="#33586F">
+<meta name="theme-color" content="#1B64DA">
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%2333586F'/%3E%3Ctext x='16' y='22' font-family='sans-serif' font-size='17' font-weight='700' fill='%23fff' text-anchor='middle'%3E%ED%98%91%3C/text%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%231B64DA'/%3E%3Ctext x='16' y='22' font-family='sans-serif' font-size='17' font-weight='700' fill='%23fff' text-anchor='middle'%3E%ED%98%91%3C/text%3E%3C/svg%3E">
 <style>
 /* ==========================================================================
    협진톡 (HyeopjinTalk) — Design System
@@ -22,44 +22,48 @@
    -------------------------------------------------------------------------- */
 
 :root {
-  /* Ink — 텍스트 3단계 */
-  --ink-1: #14181D;
-  --ink-2: #3E464F;
-  --ink-3: #5B646E;
+  /* 토스 톤(TDS) 기반. 값은 전부 흰 배경/면 위에서 4.5:1을 넘도록 한 단계씩
+     낮춰 잡았습니다 — 토스 원색(blue500 #3182F6, red500 #F04452)은 작은 글자에
+     쓰면 3.7:1이라 이 디자인의 대비 규칙을 지키지 못합니다. */
+
+  /* Ink — 텍스트 3단계 (grey900 / grey700 / grey600 계열) */
+  --ink-1: #191F28;
+  --ink-2: #4E5968;
+  --ink-3: #5C6675;
 
   /* Surface — 면 */
   --surface: #FFFFFF;
-  --canvas: #F4F5F6;
-  --canvas-2: #EFF1F2;
-  --page: #EAECEE;
-  --line: #E3E6E9;
-  --line-2: #D7DBDF;
+  --canvas: #F2F4F6;
+  --canvas-2: #EAEDF1;
+  --page: #E8EBEE;
+  --line: #E5E8EB;
+  --line-2: #D1D6DB;
 
-  /* Accent — 강조 하나만 */
-  --accent: #33586F;
-  --accent-ink: #244052;
-  --accent-soft: #E5ECF1;
-  --accent-field: #EAF0F4;
+  /* Accent — 토스 블루 */
+  --accent: #1B64DA;
+  --accent-ink: #1250B0;
+  --accent-soft: #E8F3FF;
+  --accent-field: #EFF5FF;
 
-  /* Status — 채도 낮춤 */
-  --ok: #2F5D4C;
-  --ok-soft: #E5EDE9;
-  --warn: #8A6321;
-  --warn-soft: #F4EDE1;
-  --danger: #9E3B37;
-  --danger-soft: #F7EBEA;
+  /* Status */
+  --ok: #07734B;
+  --ok-soft: #E6F6EF;
+  --warn: #8F5500;
+  --warn-soft: #FDF3E3;
+  --danger: #C41F30;
+  --danger-soft: #FDECEE;
 
   /* Etc */
-  --disabled: #D8DCDF;
-  --placeholder: #616A76;
-  --media: #DFE3E6;
+  --disabled: #D1D6DB;
+  --placeholder: #5C6675;
+  --media: #DDE1E6;
 
   /* Avatar tones */
-  --tone-steel-fg: #244052;  --tone-steel-bg: #E5ECF1;
-  --tone-sage-fg:  #2F5D4C;  --tone-sage-bg:  #E5EDE9;
-  --tone-plum-fg:  #5A4462;  --tone-plum-bg:  #EDE8F0;
-  --tone-clay-fg:  #6B4A32;  --tone-clay-bg:  #F1E9E3;
-  --tone-slate-fg: #3E464F;  --tone-slate-bg: #E9EBED;
+  --tone-steel-fg: #1B64DA;  --tone-steel-bg: #E8F3FF;
+  --tone-sage-fg:  #07734B;  --tone-sage-bg:  #E6F6EF;
+  --tone-plum-fg:  #6B3FA0;  --tone-plum-bg:  #F2ECFB;
+  --tone-clay-fg:  #93520F;  --tone-clay-bg:  #FBF1E4;
+  --tone-slate-fg: #4E5968;  --tone-slate-bg: #EDEFF2;
 
   /* Typography — 5단계만 */
   --font: 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, sans-serif;
@@ -81,18 +85,18 @@
   --r-pill: 999px;
 
   /* Shadow */
-  --sh-card: 0 1px 2px rgba(20, 24, 29, .06);
-  --sh-raised: 0 1px 2px rgba(20, 24, 29, .08);
-  --sh-frame: 0 1px 2px rgba(20, 24, 29, .08), 0 14px 32px -18px rgba(20, 24, 29, .35);
-  --sh-modal: 0 24px 48px -16px rgba(20, 24, 29, .45);
+  --sh-card: 0 1px 2px rgba(25, 31, 40, .06);
+  --sh-raised: 0 1px 2px rgba(25, 31, 40, .08);
+  --sh-frame: 0 1px 2px rgba(25, 31, 40, .08), 0 14px 32px -18px rgba(25, 31, 40, .35);
+  --sh-modal: 0 24px 48px -16px rgba(25, 31, 40, .45);
 
   /* Layout */
-  --rail-w: 432px;   /* 상태 탭 5개(전체·진행 중·안 읽음·종료·보관함)가 줄바꿈 없이 들어가는 폭 + 여유 8px */
+  --rail-w: 424px;   /* 상태 탭 5개(전체·진행 중·안 읽음·종료·보관함)가 줄바꿈 없이 들어가는 폭 + 여유 8px */
   --rail-min-w: 260px;
   --rail-max-w: 560px;
   --panel-w: 264px;
   --main-min: 440px;
-  --shell-min: 1150px;
+  --shell-min: 1210px;
   --tap: 44px; /* 최소 터치 타깃 */
 }
 
@@ -486,7 +490,7 @@ button:focus-visible,
 .state-banner__text { flex: 1; font-size: var(--t4); font-weight: 500; color: var(--ink-2); }
 .state-banner__action { flex: none; height: 36px; padding: 0 10px; font-size: var(--t4); font-weight: 700; color: var(--accent); }
 .state-banner--danger { background: var(--danger-soft); }
-.state-banner--danger .state-banner__text { color: #8A3A38; }
+.state-banner--danger .state-banner__text { color: #A61B2B; }
 .state-banner--danger .state-banner__action { color: var(--danger); }
 
 .topic-bar {
@@ -661,7 +665,7 @@ button:focus-visible,
   width: 20px; height: 20px;
   border-radius: var(--r-sm);
   background: var(--surface);
-  box-shadow: inset 0 0 0 1.5px #D2D7DB;
+  box-shadow: inset 0 0 0 1.5px #D1D6DB;
   display: flex; align-items: center; justify-content: center;
   font-size: 11px; color: transparent;
 }
@@ -718,7 +722,7 @@ button:focus-visible,
   position: absolute;
   inset: 0;
   z-index: 30;
-  background: rgba(20, 24, 29, .42);
+  background: rgba(25, 31, 40, .42);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -787,7 +791,7 @@ button:focus-visible,
   flex: none; width: 22px; height: 22px;
   border-radius: var(--r-sm);
   background: var(--surface);
-  box-shadow: inset 0 0 0 1.5px #D2D7DB;
+  box-shadow: inset 0 0 0 1.5px #D1D6DB;
   display: flex; align-items: center; justify-content: center;
   font-size: 12px; font-weight: 700; color: transparent;
 }
@@ -821,7 +825,7 @@ button:focus-visible,
   gap: var(--s2);
   background: var(--canvas);
 }
-.upload-box.is-done { background: var(--ok-soft); box-shadow: inset 0 0 0 1.5px #A9CBBC; color: var(--ok); }
+.upload-box.is-done { background: var(--ok-soft); box-shadow: inset 0 0 0 1.5px #8FCFB4; color: var(--ok); }
 
 /* --------------------------------------------------------------------------
    16. Settings / toggle
@@ -864,7 +868,7 @@ button:focus-visible,
 
 .bars { display: flex; align-items: flex-end; gap: var(--s3); height: 120px; }
 .bars__col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: var(--s2); min-width: 0; }
-.bars__bar { width: 100%; border-radius: 5px 5px 0 0; background: #B8C6D1; }
+.bars__bar { width: 100%; border-radius: 5px 5px 0 0; background: #C3CCD6; }
 .bars__bar.is-high { background: var(--accent); }
 
 .table { background: var(--surface); border-radius: var(--r-lg); overflow: hidden; box-shadow: var(--sh-card); }
@@ -872,7 +876,7 @@ button:focus-visible,
 .table__row { display: grid; gap: var(--s4); align-items: center; }
 .table__head {
   padding: var(--s4) var(--s8);
-  background: #FAFBFB;
+  background: #F9FAFB;
   border-bottom: 1px solid var(--line);
   font-size: var(--t5);
   font-weight: 700;
@@ -915,7 +919,7 @@ button:focus-visible,
   justify-content: center;
   gap: 2px;
   position: relative;
-  color: #8A939C;
+  color: #8B95A1;
 }
 .tabbar__item.is-active { color: var(--accent); }
 .tabbar__label { font-size: var(--t5); font-weight: 500; letter-spacing: 0; color: var(--ink-3); }
@@ -1226,7 +1230,7 @@ body { overscroll-behavior: none; }
   z-index: 40;
   display: flex;
   flex-direction: column;
-  background: #10161C;
+  background: #141A23;
   color: #fff;
   padding: var(--s7);
 }
@@ -1241,7 +1245,7 @@ body { overscroll-behavior: none; }
   margin: var(--s7) 0;
   border-radius: var(--r-xl);
   overflow: hidden;
-  background: #1B242C;
+  background: #1F2630;
 }
 .call__stage--voice {
   display: flex;
@@ -1260,7 +1264,7 @@ body { overscroll-behavior: none; }
   right: var(--s5); bottom: var(--s5);
   width: 116px; height: 78px;
   border-radius: var(--r-md);
-  background: #273039;
+  background: #2B333E;
   display: flex; align-items: center; justify-content: center;
 }
 .call__placeholder { font-size: var(--t5); font-weight: 600; letter-spacing: 0; color: rgba(255, 255, 255, .5); }
@@ -1304,6 +1308,65 @@ body { overscroll-behavior: none; }
 }
 .close-cta__line { flex: 1; height: 1px; background: var(--line-2); }
 .close-cta__btn { flex: none; background: var(--surface); box-shadow: var(--sh-card); }
+
+/* ── 아이콘 네비 레일 ─────────────────────────────────────────── */
+
+.navrail {
+  flex: none;
+  width: 72px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: var(--s5) var(--s2) var(--s5);
+  background: var(--surface);
+  border-right: 1px solid var(--line);
+}
+.navrail__logo {
+  flex: none;
+  width: 34px; height: 34px;
+  border-radius: var(--r-md);
+  background: var(--accent); color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-size: var(--t4); font-weight: 700;
+  margin-bottom: var(--s5);
+}
+.navrail__item {
+  flex: none;
+  position: relative;
+  width: 100%;
+  min-height: 56px;
+  border-radius: var(--r-md);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 3px;
+  color: var(--ink-3);
+}
+.navrail__item:hover { background: var(--canvas); }
+.navrail__item.is-active { background: var(--accent-soft); color: var(--accent-ink); }
+.navrail__label { font-size: var(--t5); font-weight: 600; letter-spacing: 0; }
+.navrail__item.is-active .navrail__label { color: var(--accent-ink); }
+.navrail__dot {
+  position: absolute; top: 9px; left: 50%; margin-left: 7px;
+  width: 7px; height: 7px; border-radius: 50%; background: var(--danger);
+}
+
+/* 목록 열 상단 — 이제 제목과 새 협진만 */
+.searchbox--btn { width: 100%; color: var(--ink-3); font-size: var(--t4); font-weight: 500; }
+.searchbox--btn:hover { background: var(--canvas-2); }
+
+/* 방 헤더 액션 묶음 */
+.room-header__actions { flex: none; display: flex; align-items: center; gap: 2px; }
+.btn--on { background: var(--accent-soft); color: var(--accent-ink); }
+.room-header__more { flex: none; gap: var(--s2); }
+@media (max-width: 1009px) {
+  .room-header__more-label { display: none; }
+  .room-header__more { width: var(--tap); padding: 0; }
+  /* 좁은 폭에서 제목이 감싸면 헤더가 두 줄이 됩니다 — 줄이고 말줄임 처리합니다 */
+  .room-header { flex-wrap: nowrap; }
+  .room-header__title { flex: 1 1 auto; min-width: 60px; }
+  .room-header > .avatar { display: none; }
+  .room-header__actions { gap: 0; }
+}
 
 /* ── 링크형 버튼 ──────────────────────────────────────────────── */
 .link-btn {
@@ -1779,6 +1842,7 @@ var PATHS = {
   chart:    '<path d="M3 3v18h18"/><path d="M7 16v-5M12 16V8M17 16v-3"/>',
   list:     '<path d="M8 6h13M8 12h13M8 18h13"/><path d="M3.5 6h.01M3.5 12h.01M3.5 18h.01"/>',
   logout:   '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/>',
+  dots:     '<circle cx="12" cy="5" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="12" cy="19" r="1.4"/>',
   phone:    '<path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.4-1.2a2 2 0 0 1 2.1-.5c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z"/>',
   phoneOff: '<path d="M10.7 5.1A13 13 0 0 1 14 4.7c.9.1 1.8.4 2.7.7a2 2 0 0 1 1.3 1.9v3"/><path d="M5.5 8.6a16 16 0 0 0-1.4-4.4A2 2 0 0 1 6.1 2h3a2 2 0 0 1 2 1.7"/><path d="m2 2 20 20"/><path d="M8.1 9.9a16 16 0 0 0 6 6l1.4-1.2a2 2 0 0 1 2.1-.5c.9.3 1.8.6 2.7.7A2 2 0 0 1 22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6"/>',
   video:    '<path d="m22 8-6 4 6 4z"/><rect x="2" y="6" width="14" height="12" rx="2"/>',
@@ -2118,35 +2182,58 @@ function roomListBody() {
   }).join('');
 }
 
-function railView() {
+/* 맨 왼쪽 아이콘 레일. 갈 수 있는 곳을 한 줄로 세워 두는 자리입니다.
+   모바일 하단 탭바와 목적지를 똑같이 맞춰, 화면 크기가 바뀌어도
+   "어디로 가면 되는지"가 달라지지 않게 합니다. */
+function navRailView() {
   var me = PEOPLE[S.me];
   var unread = S.notiRead ? 0 : NOTIS.filter(function (n) { return n.unread; }).length;
+  var items = [
+    { page:'rooms', icon:'chat',   label:'협진', match:['rooms','room'] },
+    { page:'search', icon:'search', label:'검색', match:['search'] },
+    { page:'notis', icon:'bell',   label:'알림', match:['notis'], dot:unread > 0 },
+    { page:'admin', icon:'shield', label:'운영자', match:['admin'] }
+  ];
+  return '<nav class="navrail" aria-label="주요 화면">'
+    + '<div class="navrail__logo" aria-hidden="true">협</div>'
+    + items.map(function (t) {
+        var on = t.match.indexOf(S.page) >= 0;
+        return '<button type="button" class="' + cls('navrail__item', on && 'is-active') + '"'
+          + ' data-act="go" data-arg="' + t.page + '"' + (on ? ' aria-current="page"' : '')
+          + ' aria-label="' + esc(t.label) + (t.dot ? ' · 읽지 않음 ' + unread + '건' : '') + '">'
+          + ic(t.icon, 20)
+          + '<span class="navrail__label">' + esc(t.label) + '</span>'
+          + (t.dot ? '<span class="navrail__dot"></span>' : '')
+        + '</button>';
+      }).join('')
+    + '<div class="grow"></div>'
+    + '<button type="button" class="' + cls('navrail__item', S.page === 'me' && 'is-active') + '"'
+      + ' data-act="go" data-arg="me" aria-label="내 정보 · ' + esc(me.name) + '">'
+      + avatar(me.initial, me.tone, 'sm')
+      + '<span class="navrail__label">내 정보</span>'
+    + '</button>'
+  + '</nav>';
+}
+
+function railView() {
+  var c = tabCounts();
   return '<aside class="rail" aria-label="환자 목록">'
     + '<div class="rail__head">'
-      + '<div class="logo" aria-hidden="true">협</div>'
-      + '<div class="grow"><div class="t2">협진톡</div></div>'
-      + '<button type="button" class="btn btn--icon" data-act="go" data-arg="notis"'
-        + ' aria-label="알림' + (unread ? ' · 읽지 않음 ' + unread + '건' : '') + '" style="position:relative">'
-        + ic('bell', 20)
-        + (unread ? '<span class="tabbar__dot" style="top:9px;margin-left:5px"></span>' : '')
-      + '</button>'
+      + '<div class="grow"><div class="t2">협진</div>'
+        + '<div class="t5" style="color:var(--ink-3);font-weight:500;letter-spacing:0">'
+          + '진행 중 ' + c.open + '건 · 안 읽음 ' + c.unread + '건</div></div>'
+      + iconBtn('openNew', '새 협진 요청', ic('plus', 20), 'btn--quiet')
     + '</div>'
     + '<div class="rail__tools">'
-      + '<div class="searchbox">' + ic('search', 18)
-        + '<input type="search" data-k="railq" data-input="globalQ" value="' + esc(S.globalQ) + '"'
-        + ' placeholder="환자 · 대화 · 자료 검색" aria-label="전체 검색" data-enter="go:search">'
-      + '</div>'
-      + '<button type="button" class="btn btn--primary" style="width:100%" data-act="openNew">'
-        + ic('plus', 18) + '새 협진 요청</button>'
+      /* 여기서 타이핑해도 목록이 걸러지지 않아 헷갈렸습니다.
+         검색은 검색 화면이 하는 일이므로 그리로 보내는 버튼으로 바꿉니다. */
+      + '<button type="button" class="searchbox searchbox--btn" data-act="go" data-arg="search">'
+        + ic('search', 18)
+        + '<span class="grow truncate">환자 · 대화 · 자료 검색</span>'
+      + '</button>'
     + '</div>'
     + '<div class="rail__tabs" role="group" aria-label="상태 필터">' + stateTabs() + '</div>'
     + '<div class="scroll" data-sk="rail" style="padding:0 var(--s4) var(--s4)">' + roomListBody() + '</div>'
-    + '<div class="rail__foot">'
-      + avatar(me.initial, me.tone, 'sm')
-      + '<div class="grow truncate"><div class="t4-strong truncate">' + esc(me.name) + '</div>'
-        + '<div class="t5 truncate" style="font-weight:500;letter-spacing:0;color:var(--ink-3)">' + esc(me.org) + '</div></div>'
-      + iconBtn('go', '내 정보', ic('user', 18), 'btn--quiet', 'me')
-    + '</div>'
   + '</aside>';
 }
 
@@ -2370,9 +2457,6 @@ function topicBar(room) {
 
   return '<div class="topic-bar"><div class="topic-bar__row">'
     + '<div class="topic-bar__chips" role="group" aria-label="주제 필터">' + chips + '</div>'
-    + iconBtn('openSearch', '이 방에서 검색', ic('search', 18), 'btn--quiet')
-    + '<button type="button" class="btn btn--quiet" style="flex:none" data-act="openFiles">'
-      + ic('image', 18) + '자료 ' + filesOf(room.id).length + '</button>'
   + '</div></div>';
 }
 
@@ -2426,13 +2510,16 @@ function roomView() {
         + '<div class="t2 truncate">' + esc(room.name) + '</div>'
         + '<div class="t4 truncate">' + esc(room.chips.join(' · ')) + ' · 참여 ' + memberKeys().length + '명</div>'
       + '</div>'
-      + iconBtn('startVoice', '음성 협진 통화', ic('phone', 18), 'btn--quiet')
-      + iconBtn('startVideo', '영상 협진 통화', ic('video', 18), 'btn--quiet')
-      + (isMobile() ? '' : '<button type="button" class="' + cls('btn', S.panelOpen ? 'btn--ghost' : 'btn--quiet')
-          + '" style="flex:none;' + (S.panelOpen ? 'background:var(--accent-soft);color:var(--accent-ink)' : '') + '"'
-          + ' data-act="togglePanel" aria-pressed="' + S.panelOpen + '">'
-          + ic('panel', 18) + (S.panelOpen ? '패널 닫기' : '환자 정보') + '</button>')
-      + '<button type="button" class="btn btn--quiet" style="flex:none" data-act="openMenu">방 관리</button>'
+      + '<div class="room-header__actions">'
+        + iconBtn('openSearch', '이 방에서 검색', ic('search', 18), 'btn--quiet')
+        + iconBtn('startVoice', '음성 협진 통화', ic('phone', 18), 'btn--quiet')
+        + iconBtn('startVideo', '영상 협진 통화', ic('video', 18), 'btn--quiet')
+        + (isMobile() ? '' : '<button type="button" class="' + cls('btn', 'btn--icon', S.panelOpen ? 'btn--on' : 'btn--quiet')
+            + '" data-act="togglePanel" aria-pressed="' + S.panelOpen + '"'
+            + ' aria-label="환자 정보 패널" title="환자 정보 패널">' + ic('panel', 18) + '</button>')
+        + '<button type="button" class="btn btn--quiet room-header__more" data-act="openMenu">'
+          + ic('dots', 18) + '<span class="room-header__more-label">방 관리</span></button>'
+      + '</div>'
     + '</header>'
     + topicBar(room)
     + '<div class="thread" data-sk="thread" id="thread">' + thread + '</div>'
@@ -2872,6 +2959,8 @@ function menuSheetBody() {
   var items = [
     { act:'openSummary', icon:'list', label:'상담 요약 보기',
       sub:'지금까지 오간 내용을 한 장으로 정리해 보여줍니다', tone:'accent' },
+    { act:'openFiles', icon:'image', label:'자료 분석',
+      sub:'올라온 자료의 자동 계측값을 모아서 봅니다', tone:'plain' },
     { act:'openInvite', icon:'userin', label:'의사 초대', sub:'초대된 의사는 지난 대화와 자료를 모두 봅니다', tone:'accent' },
     { act:'askClose', icon: S.closed[id] ? 'reopen' : 'checkc',
       label: S.closed[id] ? '상담 다시 열기' : '상담 종료하기',
@@ -2885,7 +2974,7 @@ function menuSheetBody() {
       sub: S.trashed[id] ? '삭제 예정을 취소하고 되돌립니다' : '보관함으로 옮겨 30일 뒤 영구 삭제됩니다', tone:'danger' }
   ];
   return items.map(function (m) {
-    var iconBg = m.tone === 'danger' ? '#F0D9D7' : (m.tone === 'ok' ? 'var(--ok-soft)'
+    var iconBg = m.tone === 'danger' ? '#F9DADE' : (m.tone === 'ok' ? 'var(--ok-soft)'
       : (m.tone === 'accent' ? '#FFFFFF' : 'var(--line)'));
     var iconFg = m.tone === 'danger' ? 'var(--danger)' : (m.tone === 'ok' ? 'var(--ok)'
       : (m.tone === 'accent' ? 'var(--accent-ink)' : 'var(--ink-2)'));
@@ -2896,7 +2985,7 @@ function menuSheetBody() {
       + '<span class="grow" style="display:block">'
         + '<span class="action-card__label"' + (m.tone === 'danger' ? ' style="color:var(--danger)"' : '') + '>'
           + esc(m.label) + '</span>'
-        + '<span class="action-card__sub"' + (m.tone === 'danger' ? ' style="color:#8A5B58"' : '') + '>'
+        + '<span class="action-card__sub"' + (m.tone === 'danger' ? ' style="color:#A3565F"' : '') + '>'
           + esc(m.sub) + '</span>'
       + '</span></button>';
   }).join('');
@@ -3028,7 +3117,7 @@ function railResizer() {
 function appView() {
   var showPanel = !isMobile() && S.page === 'room' && S.panelOpen;
   return '<div class="shell">'
-      + (isMobile() ? '' : railView() + railResizer())
+      + (isMobile() ? '' : navRailView() + railView() + railResizer())
       + mainArea()
       + (showPanel ? panelView() : '')
     + '</div>'
@@ -3051,7 +3140,7 @@ function view() {
 
 var RAIL_MIN = 260;
 var RAIL_MAX = 560;
-var RAIL_DEFAULT = 432;
+var RAIL_DEFAULT = 424;
 
 function loadRailWidth() {
   try {
