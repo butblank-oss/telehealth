@@ -91,12 +91,12 @@
   --sh-modal: 0 24px 48px -16px rgba(25, 31, 40, .45);
 
   /* Layout */
-  --rail-w: 424px;   /* 상태 탭 5개(전체·진행 중·안 읽음·종료·보관함)가 줄바꿈 없이 들어가는 폭 + 여유 8px */
+  --rail-w: 320px;   /* 상태 탭 3개 + 더보기가 한 줄에 들어가는 폭. 나머지는 더보기 안에 있습니다 */
   --rail-min-w: 260px;
   --rail-max-w: 560px;
   --panel-w: 264px;
   --main-min: 440px;
-  --shell-min: 1210px;
+  --shell-min: 1106px;
   --tap: 44px; /* 최소 터치 타깃 */
 }
 
@@ -440,7 +440,7 @@ button:focus-visible,
   gap: 11px;
   align-items: flex-start;
   min-height: 72px;
-  padding: 12px 10px;
+  padding: 11px 10px;
   border-radius: var(--r-md);
   margin-bottom: 2px;
   background: var(--surface);
@@ -451,15 +451,18 @@ button:focus-visible,
 .room-row__name { flex: 1; font-size: var(--t3); font-weight: 600; letter-spacing: -.02em; }
 .room-row__when { flex: none; font-size: var(--t5); font-weight: 500; letter-spacing: 0; color: var(--ink-3); }
 
-/* 환자 요약 — 이름만으로 식별이 어려워 반드시 노출합니다 */
+/* 환자 요약 — 이름만으로 식별이 어려워 반드시 노출합니다.
+   누를 수 있는 것도 선택된 것도 아니므로 색이 아니라 굵기로 세웁니다. */
 .room-row__summary {
   font-size: var(--t4);
   font-weight: 600;
-  color: var(--accent);
+  color: var(--ink-1);
   margin-bottom: 2px;
 }
-.room-row__last { font-size: var(--t4); color: var(--ink-3); margin-bottom: 5px; }
-.room-row__meta { display: flex; align-items: center; gap: 5px; }
+.room-row__last { font-size: var(--t4); color: var(--ink-3); }
+.room-row__mid { display: flex; align-items: center; gap: 5px; margin-bottom: 2px; }
+.room-row__mid .room-row__summary { flex: 1; min-width: 0; margin-bottom: 0; }
+.room-row__mid .badge { flex: none; }
 
 .empty-state { padding: 48px 20px; text-align: center; }
 .empty-state__title { font-size: var(--t3); font-weight: 600; color: var(--ink-2); margin-bottom: 4px; }
@@ -523,8 +526,8 @@ button:focus-visible,
   font-size: var(--t5);
   font-weight: 700;
   letter-spacing: var(--t5-ls);
-  color: var(--accent);
-  background: var(--accent-soft);
+  color: var(--ink-2);
+  background: var(--line);
   padding: 4px var(--s4);
   border-radius: var(--r-pill);
   white-space: nowrap;
@@ -977,9 +980,9 @@ body { overscroll-behavior: none; }
   flex: none;
   display: flex;
   flex-wrap: nowrap;
+  align-items: center;
   gap: var(--s2);
   padding: 5px var(--s6) var(--s5);
-  overflow-x: auto;
 }
 .rail__foot { flex: none; border-top: 1px solid var(--line); padding: var(--s4) var(--s6); display: flex; align-items: center; gap: 9px; }
 
@@ -1107,16 +1110,16 @@ body { overscroll-behavior: none; }
 
 /* 방 전체 자료를 한 덩어리로 정리한 블록 */
 .digest {
-  background: var(--accent-soft);
+  background: var(--canvas);
   border-radius: var(--r-md);
   padding: var(--s5) var(--s6);
 }
-.digest__head { display: flex; align-items: center; gap: var(--s2); color: var(--accent-ink); margin-bottom: var(--s4); }
+.digest__head { display: flex; align-items: center; gap: var(--s2); color: var(--ink-2); margin-bottom: var(--s4); }
 .digest__grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: var(--s4) var(--s5); }
 .digest__k {
   display: block;
   font-size: var(--t5); font-weight: 700; letter-spacing: var(--t5-ls);
-  color: var(--accent-ink); opacity: .75; margin-bottom: 2px;
+  color: var(--ink-3); margin-bottom: 2px;
 }
 .digest__v { display: block; font-size: var(--t4); font-weight: 600; color: var(--ink-1); }
 
@@ -1165,8 +1168,9 @@ body { overscroll-behavior: none; }
 .sum-card__head {
   display: flex; align-items: center; gap: var(--s2);
   padding: var(--s5) var(--s6);
-  background: var(--accent-soft);
-  color: var(--accent-ink);
+  background: var(--canvas);
+  color: var(--ink-2);
+  border-bottom: 1px solid var(--line);
 }
 .sum-card .sum { padding: var(--s6); }
 
@@ -1546,6 +1550,30 @@ body { overscroll-behavior: none; }
 .attach-info { margin-bottom: var(--s5); }
 .attach-info .metric-row { border-bottom: 1px solid var(--canvas-2); min-height: 36px; }
 
+/* 상태 탭 더보기 */
+.tabmenu { position: relative; flex: none; }
+.chip--more { padding: 0 9px; }
+.chip--more.is-open { background: var(--ink-1); color: #fff; }
+.tabmenu__pop {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 20;
+  min-width: 152px;
+  background: var(--surface);
+  border-radius: var(--r-md);
+  box-shadow: 0 1px 2px rgba(25, 31, 40, .08), 0 12px 28px -12px rgba(25, 31, 40, .4);
+  padding: var(--s2);
+}
+.tabmenu__item {
+  display: flex; align-items: center; gap: var(--s3);
+  width: 100%; min-height: var(--tap);
+  padding: 0 var(--s4);
+  border-radius: 8px;
+  font-size: var(--t4); font-weight: 500; color: var(--ink-2);
+}
+.tabmenu__item:hover { background: var(--canvas); }
+
 /* ── 링크형 버튼 ──────────────────────────────────────────────── */
 .link-btn {
   min-height: var(--tap); padding: 0 var(--s3);
@@ -1797,6 +1825,7 @@ var S = {
   me: 'han',
   roomId: 'p1',
   tab: 'all',
+  tabMenu: false,
   topic: 'all',
   panel: 'info',
   panelOpen: true,
@@ -2047,6 +2076,17 @@ function memberKeys() {
   Object.keys(S.joined).forEach(function (k) { if (keys.indexOf(k) < 0) keys.push(k); });
   return keys.filter(function (k) { return !S.removed[k]; });
 }
+/* 마지막 말이 내가 아니면 내 차례입니다. 홈과 목록이 같은 기준을 씁니다. */
+function needsReply(r) {
+  if (S.closed[r.id] || !live(r)) return false;
+  var last = null;
+  r.threads.forEach(function (t) {
+    var ms = threadMsgs(r.id, t.id);
+    if (ms.length) last = ms[ms.length - 1];
+  });
+  return !!last && last.who !== S.me && !last.system;
+}
+
 function live(r) {
   return !S.archived[r.id] && !S.trashed[r.id];
 }
@@ -2389,19 +2429,18 @@ function adminView() {
 /* ── 9. 레일 / 환자 목록 ───────────────────────────────────────── */
 
 function roomRow(r, active) {
-  var badges = [];
-  badges.push('<span class="badge">문의 ' + r.threads.length + '건</span>');
-  if (S.closed[r.id] && !S.archived[r.id] && !S.trashed[r.id]) {
-    badges.push('<span class="badge" style="background:var(--line);color:var(--ink-2)">종료</span>');
-  }
-  if (S.trashed[r.id]) {
-    badges.push('<span class="badge badge--danger">삭제 예정 30일</span>');
-  } else if (S.archived[r.id]) {
-    badges.push('<span class="badge" style="background:var(--line);color:var(--ink-2)">보관됨</span>');
-  }
-  if (r.unread && live(r)) {
-    badges.push('<span class="badge badge--count">' + r.unread + '<span class="sr-only">건 안 읽음</span></span>');
-  }
+  /* 훑을 때 필요한 건 누구 · 뭐가 문제 · 내 차례인가 셋입니다.
+     배지는 4번째 줄을 차지하지 않고 요약 줄 오른쪽에 붙습니다. */
+  var marks = [];
+  if (S.trashed[r.id]) marks.push('<span class="badge badge--danger">삭제 예정</span>');
+  else if (S.archived[r.id]) marks.push('<span class="badge">보관됨</span>');
+  else if (S.closed[r.id]) marks.push('<span class="badge">종료</span>');
+  /* 문의가 1건이면 아무것도 말해주지 않으므로 2건부터 보여줍니다 */
+  else if (r.threads.length > 1) marks.push('<span class="badge">문의 ' + r.threads.length + '</span>');
+
+  var flag = r.unread && live(r)
+    ? '<span class="badge badge--count">' + r.unread + '<span class="sr-only">건 안 읽음</span></span>'
+    : (needsReply(r) ? '<span class="badge badge--warn">답변 대기</span>' : '');
 
   return '<button type="button" class="' + cls('room-row', active && 'is-active') + '"'
     + ' data-act="open" data-arg="' + esc(r.id) + '"' + (active ? ' aria-current="true"' : '') + '>'
@@ -2411,21 +2450,53 @@ function roomRow(r, active) {
         + '<span class="room-row__name truncate">' + esc(r.name) + '</span>'
         + '<span class="room-row__when num">' + esc(r.when) + '</span>'
       + '</span>'
-      + '<span class="room-row__summary truncate" style="display:block">' + esc(r.summary) + '</span>'
+      + '<span class="room-row__mid">'
+        + '<span class="room-row__summary truncate">' + esc(r.summary) + '</span>'
+        + marks.join('') + flag
+      + '</span>'
       + '<span class="room-row__last truncate" style="display:block">' + esc(r.last) + '</span>'
-      + '<span class="room-row__meta">' + badges.join('') + '</span>'
     + '</span>'
   + '</button>';
 }
 
+/* 상태 탭.
+   매일 쓰는 건 앞 세 개입니다. 다섯 개를 한 줄에 넣으려다 레일 폭이
+   424px까지 밀려났었습니다 — 목록이 요구한 폭이 아니라 탭이 요구한 폭이었죠.
+   종료·보관함은 더보기 안으로 넣고, 그 탭이 켜져 있을 때만 줄에 남깁니다. */
+var PRIMARY_TABS = ['all', 'open', 'unread'];
+var TAB_LABELS = { all:'전체', open:'진행 중', unread:'안 읽음', closed:'종료', archive:'보관함' };
+
+function tabChip(key, counts) {
+  var on = S.tab === key;
+  return '<button type="button" class="' + cls('chip', on && 'is-active') + '"'
+    + ' data-act="tab" data-arg="' + key + '" aria-pressed="' + on + '">'
+    + esc(TAB_LABELS[key]) + ' <span class="num">' + counts[key] + '</span></button>';
+}
+
 function stateTabs() {
   var c = tabCounts();
-  return [['all','전체',c.all],['open','진행 중',c.open],['unread','안 읽음',c.unread],
-          ['closed','종료',c.closed],['archive','보관함',c.archive]].map(function (t) {
-    return '<button type="button" class="' + cls('chip', S.tab === t[0] && 'is-active') + '"'
-      + ' data-act="tab" data-arg="' + t[0] + '" aria-pressed="' + (S.tab === t[0]) + '">'
-      + esc(t[1]) + ' <span class="num">' + t[2] + '</span></button>';
-  }).join('');
+  var extra = ['closed', 'archive'];
+  var shown = PRIMARY_TABS.concat(extra.indexOf(S.tab) >= 0 ? [S.tab] : []);
+  var hidden = extra.filter(function (k) { return k !== S.tab; });
+
+  return shown.map(function (k) { return tabChip(k, c); }).join('')
+    + (hidden.length
+        ? '<div class="tabmenu" data-tabmenu>'
+          + '<button type="button" class="' + cls('chip', 'chip--more', S.tabMenu && 'is-open') + '"'
+            + ' data-act="toggleTabMenu" aria-expanded="' + !!S.tabMenu + '" aria-label="다른 상태 보기">'
+            + ic('dots', 16) + '</button>'
+          + (S.tabMenu
+              ? '<div class="tabmenu__pop">'
+                + hidden.map(function (k) {
+                    return '<button type="button" class="tabmenu__item" data-act="tab" data-arg="' + k + '">'
+                      + '<span class="grow">' + esc(TAB_LABELS[k]) + '</span>'
+                      + '<span class="num" style="color:var(--ink-3)">' + c[k] + '</span>'
+                    + '</button>';
+                  }).join('')
+              + '</div>'
+              : '')
+        + '</div>'
+        : '');
 }
 
 function roomListBody() {
@@ -2864,7 +2935,7 @@ function metricRows(f, editing) {
 function fileDetail(f) {
   return '<div class="file-detail">'
     + '<div class="file-detail__head">'
-      + '<span class="badge badge--accent">' + esc(f.tag) + '</span>'
+      + '<span class="badge">' + esc(f.tag) + '</span>'
       + '<span class="t3-strong grow truncate">' + esc(f.name) + '</span>'
       + (isEdited(f) ? '<span class="badge badge--warn">수정됨</span>' : '')
       + '<span class="t5" style="color:var(--ink-3);font-weight:500;letter-spacing:0">'
@@ -2893,7 +2964,7 @@ function viewerView() {
       + ' aria-label="' + esc(f.name) + ' 자료 보기">'
     + '<div class="viewer" data-stop="1">'
       + '<div class="viewer__head">'
-        + '<span class="badge badge--accent">' + esc(f.tag) + '</span>'
+        + '<span class="badge">' + esc(f.tag) + '</span>'
         + '<div class="grow truncate">'
           + '<div class="t2 truncate">' + esc(f.name) + '</div>'
           + '<div class="t5" style="color:var(--ink-3);font-weight:500;letter-spacing:0">'
@@ -3059,13 +3130,7 @@ function homeStats() {
 
   list.forEach(function (r) {
     if (S.closed[r.id]) return;
-    /* 마지막 말이 내가 아닌 방 = 내 차례 */
-    var last = null;
-    r.threads.forEach(function (t) {
-      var ms = threadMsgs(r.id, t.id);
-      if (ms.length) last = ms[ms.length - 1];
-    });
-    if (last && last.who !== S.me && !last.system) waiting.push(r);
+    if (needsReply(r)) waiting.push(r);
 
     filesOf(r.id).forEach(function (f) {
       var warn = metricsOf(f).filter(function (m) { return m[2] === 'warn'; });
@@ -3121,7 +3186,7 @@ function homeScreen() {
     ? x.flagged.map(function (o) {
         return '<button type="button" class="result-card" data-act="openViewer" data-arg="' + esc(o.file.id) + '">'
           + '<span class="row" style="gap:var(--s2);margin-bottom:4px">'
-            + '<span class="badge badge--accent">' + esc(o.file.tag) + '</span>'
+            + '<span class="badge">' + esc(o.file.tag) + '</span>'
             + '<span class="t4-strong grow truncate">' + esc(o.room.name) + ' · ' + esc(o.file.name) + '</span>'
             + '<span class="badge badge--warn">눈여겨볼 값 ' + o.warn + '</span>'
           + '</span>'
@@ -3223,7 +3288,7 @@ function searchScreen() {
       body += '<h2 class="sec-label">대화 ' + r.msgs.length + '건</h2>'
         + r.msgs.map(function (m) {
           return '<button type="button" class="result-card" data-act="open" data-arg="' + esc(m.rid) + '">'
-            + '<span class="t4-strong" style="color:var(--accent)">' + esc(m.room) + '</span>'
+            + '<span class="t4-strong">' + esc(m.room) + '</span>'
             + '<span class="t5" style="display:block;font-weight:500;letter-spacing:0;color:var(--ink-3);margin:2px 0 5px">'
               + esc(m.who) + ' · ' + esc(m.when) + '</span>'
             + '<span class="t4" style="display:block;color:var(--ink-1)">' + esc(m.body) + '</span>'
@@ -3718,7 +3783,7 @@ function view() {
 
 var RAIL_MIN = 260;
 var RAIL_MAX = 560;
-var RAIL_DEFAULT = 424;
+var RAIL_DEFAULT = 320;
 
 function loadRailWidth() {
   try {
@@ -3792,7 +3857,8 @@ var ACTIONS = {
   adminTab: function (v) { S.adminTab = v; },
   auditF: function (v) { S.auditF = v; },
 
-  tab: function (v) { S.tab = v; },
+  tab: function (v) { S.tab = v; S.tabMenu = false; },
+  toggleTabMenu: function () { S.tabMenu = !S.tabMenu; },
   open: function (v) { openRoom(v); },
   topic: function (v) { S.topic = v; threadToBottom = true; },
   panel: function (v) { S.panel = v; },
@@ -4078,6 +4144,11 @@ function render() {
 app.addEventListener('click', function (e) {
   var stop = e.target.closest('[data-stop]');
   var node = e.target.closest('[data-act]');
+  /* 더보기 메뉴는 바깥을 누르면 닫힙니다 */
+  if (S.tabMenu && !e.target.closest('[data-tabmenu]')) {
+    S.tabMenu = false;
+    if (!node) { render(); return; }
+  }
   if (!node) return;
   /* 모달 카드 안쪽 클릭은 오버레이 닫기로 새지 않게 합니다 */
   if (node.classList.contains('overlay') && stop) return;
