@@ -1536,6 +1536,7 @@ body { overscroll-behavior: none; }
   background: var(--media);
   display: flex; align-items: center; justify-content: center;
 }
+.viewer__img { max-width: 100%; max-height: 100%; object-fit: contain; display: block; }
 .viewer__tag {
   position: absolute; top: var(--s4); left: var(--s4);
   font-size: 11px; font-weight: 700;
@@ -1572,7 +1573,9 @@ body { overscroll-behavior: none; }
   position: relative;
   flex: none; width: 44px; height: 36px;
   border-radius: 7px; background: var(--media);
+  overflow: hidden;
 }
+.viewer__item-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .viewer__item-tag {
   position: absolute; top: 3px; left: 3px;
   font-size: 10px; font-weight: 700;
@@ -1985,6 +1988,7 @@ var S = {
   tabMenu: false,
   callMenu: false,
   autoSeen: false,
+  attachOver: 0,
   homeAllFlags: false,
   topic: 'all',
   panel: 'info',
@@ -2007,7 +2011,6 @@ var S = {
   archived: {},
   trashed: {},
   fileFilter: 'all',
-  fileId: '',
   fileEdits: {},
   fileHistory: {},
   extraFiles: {},
@@ -2063,7 +2066,9 @@ function fileById(roomId, id) {
   return null;
 }
 function fileRoom(id) {
-  var keys = Object.keys(FILES);
+  /* 시드 자료는 FILES에, 올린 자료는 S.extraFiles에 있습니다. 둘 다 봅니다 —
+     새로 만든 방은 FILES에 아예 없어서 시드만 보면 찾지 못합니다. */
+  var keys = Object.keys(FILES).concat(Object.keys(S.extraFiles));
   for (var i = 0; i < keys.length; i++) {
     if (fileById(keys[i], id)) return keys[i];
   }
@@ -3211,7 +3216,9 @@ function viewerView() {
         + '<div class="grow truncate">'
           + '<div class="t2 truncate">' + esc(f.name) + '</div>'
           + '<div class="t5" style="color:var(--ink-3);font-weight:500;letter-spacing:0">'
-            + esc(roomById(rid).name) + ' · ' + esc(f.when) + ' · ' + esc(f.size || '') + '</div>'
+            + esc(roomById(rid).name) + ' · ' + esc(f.when)
+            + (f.size ? ' · ' + esc(f.size) : '')
+            + (f.fileName && f.fileName !== f.name ? ' · ' + esc(f.fileName) : '') + '</div>'
         + '</div>'
         + iconBtn('closeViewer', '닫기', ic('x', 20), 'btn--quiet')
       + '</div>'
@@ -3226,6 +3233,7 @@ function viewerView() {
                 + ' data-act="openViewer" data-arg="' + esc(x.id) + '"'
                 + (on ? ' aria-current="true"' : '') + '>'
                 + '<span class="viewer__item-thumb">'
+                  + (x.url ? '<img src="' + esc(x.url) + '" alt="">' : '')
                   + '<span class="viewer__item-tag">' + esc(x.tag) + '</span>'
                   + (isEdited(x) ? '<span class="viewer__item-dot" title="수정됨"></span>' : '')
                 + '</span>'
@@ -3238,8 +3246,10 @@ function viewerView() {
         + '</nav>'
         + '<div class="viewer__stage">'
           + '<div class="viewer__image">'
+            + (f.url
+                ? '<img class="viewer__img" src="' + esc(f.url) + '" alt="' + esc(f.name) + '">'
+                : '<span class="t4" style="color:var(--ink-3)">' + esc(f.name) + '</span>')
             + '<span class="viewer__tag">' + esc(f.tag) + '</span>'
-            + '<span class="t4" style="color:var(--ink-3)">' + esc(f.name) + '</span>'
           + '</div>'
           + (list.length > 1
               ? '<div class="viewer__nav">'
@@ -3511,7 +3521,7 @@ function searchResults() {
   list.forEach(function (r) {
     filesOf(r.id).forEach(function (f) {
       if ((f.name + f.tag + captionOf(f) + r.name + r.summary).indexOf(q) >= 0) {
-        files.push({ id:f.id, kind:f.name, tag:f.tag, room:r.name, when:f.when });
+        files.push({ rec:f, room:r.name });
       }
     });
   });
@@ -3555,11 +3565,8 @@ function searchScreen() {
     if (r.files.length) {
       body += '<h2 class="sec-label">자료 ' + r.files.length + '건</h2>'
         + '<div class="thumb-grid">' + r.files.map(function (f) {
-          return '<button type="button" class="file-card" data-act="openViewer" data-arg="' + esc(f.id) + '">'
-            + '<span class="file-card__thumb">'
-              + '<span class="file-card__tag">' + esc(f.tag) + '</span>'
-              + '<span>' + esc(f.kind) + '<br><span style="color:var(--ink-3)">' + esc(f.room) + '</span></span>'
-            + '</span></button>';
+          return '<div class="thumb-cell">' + fileCard(f.rec)
+            + '<span class="thumb-cell__room truncate">' + esc(f.room) + '</span></div>';
         }).join('') + '</div>';
     }
   }
@@ -3854,6 +3861,10 @@ function attachSheetBody() {
       + (items.length ? '<button type="button" class="link-btn" data-act="attachClear">전부 빼기</button>' : '')
     + '</div>'
 
+    + (S.attachOver
+        ? '<p class="field-hint" style="margin:0 0 var(--s4);color:var(--warn)">'
+          + S.attachOver + '개는 담지 못했습니다. 한 번에 ' + ATTACH_MAX + '개까지입니다.</p>'
+        : '')
     + (items.length >= ATTACH_MAX
         ? '<p class="field-hint" style="margin:0 0 var(--s5)">' + ATTACH_MAX + '개를 채웠습니다. 빼야 더 넣을 수 있습니다.</p>'
         : '<button type="button" class="btn btn--quiet up-pick" data-act="pickFiles">'
@@ -4179,8 +4190,9 @@ var ACTIONS = {
   attachRemove: function (v) {
     if (!S.attach) return;
     S.attach.items.splice(parseInt(v, 10), 1);
+    S.attachOver = 0;
   },
-  attachClear: function () { if (S.attach) S.attach.items = []; },
+  attachClear: function () { if (S.attach) S.attach.items = []; S.attachOver = 0; },
   clearFile: function () { S.pendingFile = null; },
   editPending: function () {
     if (S.pendingFile) { S.attach = S.pendingFile; S.sheet = 'attach'; }
@@ -4501,7 +4513,7 @@ app.addEventListener('change', function (e) {
       url: isImg ? URL.createObjectURL(f) : ''
     });
   });
-  if (room) S.attachOver = room;
+  S.attachOver = room || 0;
   el.value = '';
   render();
 });
