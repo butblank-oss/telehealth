@@ -1508,6 +1508,9 @@ body { overscroll-behavior: none; }
 .viewer {
   width: 100%;
   max-width: 1000px;
+  /* 자료마다 오른쪽 계측표 길이가 달라 팝업 높이가 들쭉날쭉했습니다.
+     높이를 못박아 그림 크기가 넘길 때마다 바뀌지 않게 합니다. */
+  height: min(760px, calc(100dvh - 40px));
   max-height: calc(100dvh - 40px);
   background: var(--surface);
   border-radius: var(--r-xl);
@@ -1522,7 +1525,7 @@ body { overscroll-behavior: none; }
   padding: var(--s5) var(--s6);
   border-bottom: 1px solid var(--line);
 }
-.viewer__body { flex: 1 1 auto; min-height: 0; display: flex; }
+.viewer__body { flex: 1 1 0; min-height: 0; display: flex; }
 
 .viewer__stage {
   flex: 1 1 0;
@@ -1763,6 +1766,39 @@ body { overscroll-behavior: none; }
 }
 .pend-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .pend-thumb--more { font-size: var(--t5); font-weight: 700; color: var(--ink-2); background: var(--line); }
+
+/* 삭제 되돌리기 */
+.undo-bar {
+  display: flex; align-items: center; gap: 9px;
+  margin-bottom: 9px;
+  padding: 9px 11px;
+  border-radius: 9px;
+  background: var(--danger-soft);
+  color: var(--danger);
+  font-size: var(--t4);
+  font-weight: 600;
+}
+.trash-row {
+  display: flex; align-items: center; gap: var(--s3);
+  min-height: 48px;
+  padding: 0 var(--s4);
+  border-radius: var(--r-md);
+  background: var(--canvas);
+  margin-bottom: var(--s2);
+  font-size: var(--t4);
+}
+.bubble__gone {
+  display: block;
+  margin-top: var(--s2);
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--canvas);
+  font-size: var(--t5);
+  font-weight: 600;
+  letter-spacing: 0;
+  color: var(--ink-3);
+}
+.msg--mine .bubble__gone { background: rgba(255, 255, 255, .16); color: rgba(255, 255, 255, .85); }
 
 /* ── 링크형 버튼 ──────────────────────────────────────────────── */
 .link-btn {
@@ -2048,6 +2084,8 @@ var S = {
   viewerId: '',
   editing: false,
   draftEdits: {},
+  deletedFiles: {},
+  lastDeleted: null,
   draftName: null,
   draftNote: null,
   histOpen: false,
@@ -2090,7 +2128,19 @@ function threadMsgs(roomId, threadId) {
   return (MSGS[key] || []).concat(S.sent[key] || []);
 }
 function filesOf(roomId) {
-  return (FILES[roomId] || []).concat(S.extraFiles[roomId] || []);
+  return (FILES[roomId] || []).concat(S.extraFiles[roomId] || [])
+    .filter(function (f) { return !S.deletedFiles[f.id]; });
+}
+/* 지운 자료도 바로 없애지 않습니다 — 의료 자료라 되돌릴 수 있어야 합니다.
+   대화 삭제와 같은 규칙(30일 유예)을 씁니다. */
+function deletedFilesOf(roomId) {
+  return (FILES[roomId] || []).concat(S.extraFiles[roomId] || [])
+    .filter(function (f) { return S.deletedFiles[f.id]; });
+}
+function anyFileById(roomId, id) {
+  var all = (FILES[roomId] || []).concat(S.extraFiles[roomId] || []);
+  for (var i = 0; i < all.length; i++) if (all[i].id === id) return all[i];
+  return null;
 }
 function fileById(roomId, id) {
   var list = filesOf(roomId);
@@ -2195,7 +2245,7 @@ function saveFileEdits(f, draft, name, note) {
 function saveEdits() {
   try {
     localStorage.setItem('hjt-file-edits',
-      JSON.stringify({ edits:S.fileEdits, history:S.fileHistory }));
+      JSON.stringify({ edits:S.fileEdits, history:S.fileHistory, deleted:S.deletedFiles }));
   } catch (e) {}
 }
 function loadEdits() {
@@ -2204,12 +2254,14 @@ function loadEdits() {
     if (raw && typeof raw === 'object') {
       S.fileEdits = raw.edits || {};
       S.fileHistory = raw.history || {};
+      S.deletedFiles = raw.deleted || {};
     }
   } catch (e) {}
 }
 function resetEdits() {
   S.fileEdits = {};
   S.fileHistory = {};
+  S.deletedFiles = {};
   try { localStorage.removeItem('hjt-file-edits'); } catch (e) {}
 }
 /* 방 전체 자료를 한 덩어리로 정리합니다 — 종류별 건수, 기간, 눈여겨볼 계측값 수 */
@@ -2903,6 +2955,10 @@ function msgView(m, prev) {
   /* 한 번에 올린 자료 묶음 */
   if (m.fileIds && m.fileIds.length) {
     var recs = m.fileIds.map(function (id) { return fileById(S.roomId, id); }).filter(Boolean);
+    var removed = m.fileIds.length - recs.length;
+    if (removed) {
+      inner += '<span class="bubble__gone">' + esc('자료 ' + removed + '건이 삭제되었습니다') + '</span>';
+    }
     if (recs.length) {
       inner += '<span class="' + cls('bubble__files', recs.length > 1 && 'is-grid') + '"'
         + ' style="' + (m.body ? 'margin-top:9px' : 'margin-top:0') + '">'
@@ -3151,6 +3207,13 @@ function roomView() {
     + topicBar(room)
     + '<div class="thread" data-sk="thread" id="thread">' + thread + '</div>'
     + '<div class="composer">'
+      + (S.lastDeleted
+          ? '<div class="undo-bar">' + ic('trash', 16)
+            + '<span class="grow truncate">' + esc(S.lastDeleted.name) + ' 을(를) 삭제했습니다</span>'
+            + '<button type="button" class="link-btn" data-act="undeleteFile">되돌리기</button>'
+            + iconBtn('dismissUndo', '닫기', ic('x', 16), '')
+          + '</div>'
+          : '')
       + (S.pendingFile && S.pendingFile.items.length
           ? '<div class="attach-pending">'
             + '<span class="pend-thumbs">'
@@ -3376,10 +3439,9 @@ function viewerView() {
                   + '<button type="button" class="btn btn--quiet" data-act="cancelEdit">취소</button>'
                   + '<button type="button" class="btn btn--primary grow" data-act="saveEdit">저장</button>'
                 + '</div>'
-                + (f.uploaded
-                    ? '<button type="button" class="btn btn--danger viewer__delete" data-act="deleteFile">'
-                      + ic('trash', 16) + '이 자료 빼기</button>'
-                    : '<p class="field-hint">처음부터 있던 자료는 뺄 수 없습니다.</p>')
+                + '<button type="button" class="btn btn--danger viewer__delete" data-act="deleteFile">'
+                  + ic('trash', 16) + '이 자료 삭제</button>'
+                + '<p class="field-hint">30일 뒤 영구 삭제되며 그 전에는 되돌릴 수 있습니다.</p>'
               : (noteOf(f) ? '<p class="t4" style="margin:var(--s5) 0 0;color:var(--ink-2)">' + esc(noteOf(f)) + '</p>' : ''))
 
           + (hist.length
@@ -3863,6 +3925,19 @@ function filesSheetBody() {
         ? files.map(fileDetail).join('')
         : '<div class="empty-state"><div class="empty-state__title">해당하는 자료가 없습니다</div>'
           + '<div class="empty-state__body">다른 필터를 선택해 보세요</div></div>')
+    + (function () {
+        var gone = deletedFilesOf(room.id);
+        if (!gone.length) return '';
+        return '<h3 class="sec-label">삭제 예정 ' + gone.length + '건</h3>'
+          + gone.map(function (f) {
+              return '<div class="trash-row">'
+                + '<span class="badge badge--danger">30일 뒤 삭제</span>'
+                + '<span class="grow truncate">' + esc(nameOf(f)) + '</span>'
+                + '<button type="button" class="link-btn" data-act="undeleteFile" data-arg="'
+                  + esc(f.id) + '">복구</button>'
+              + '</div>';
+            }).join('');
+      })()
     + '<div class="note-ok" style="margin-top:var(--s7)">자료는 만료되지 않습니다. 삭제하기 전까지 그대로 남습니다. '
       + '계측값 ' + d.metrics + '개는 자동으로 뽑은 수치이며, 판독과 진단은 의사가 합니다.</div>';
 }
@@ -4363,21 +4438,23 @@ var ACTIONS = {
   },
   deleteFile: function () {
     var rid = fileRoom(S.viewerId);
-    var list = S.extraFiles[rid] || [];
-    var i = list.map(function (f) { return f.id; }).indexOf(S.viewerId);
-    if (i < 0) return;
-    var gone = list[i];
-    list.splice(i, 1);
+    var f = anyFileById(rid, S.viewerId);
+    if (!f) return;
+    S.deletedFiles[f.id] = true;
     AUDIT_ROWS.unshift(['방금', PEOPLE[S.me].name, '삭제',
-      roomById(rid).name + ' · ' + gone.name, 'Web · 협진톡', 'delete']);
-    /* 이 자료를 물고 있던 메시지에서도 떼어냅니다 */
-    Object.keys(S.sent).forEach(function (k) {
-      S.sent[k].forEach(function (m) {
-        if (m.fileIds) m.fileIds = m.fileIds.filter(function (id) { return id !== gone.id; });
-      });
-    });
+      roomById(rid).name + ' · ' + nameOf(f), 'Web · 협진톡', 'delete']);
+    saveEdits();
     S.viewerId = ''; S.editing = false;
+    S.lastDeleted = { id:f.id, room:rid, name:nameOf(f) };
   },
+  undeleteFile: function (v) {
+    var id = v || (S.lastDeleted && S.lastDeleted.id);
+    if (!id) return;
+    delete S.deletedFiles[id];
+    if (S.lastDeleted && S.lastDeleted.id === id) S.lastDeleted = null;
+    saveEdits();
+  },
+  dismissUndo: function () { S.lastDeleted = null; },
   toggleHist: function () { S.histOpen = !S.histOpen; },
   resetDemo: function () { resetEdits(); S.viewerId = ''; },
 
@@ -4468,6 +4545,9 @@ function stepViewer(dir) {
   var next = list[(i + dir + list.length) % list.length];
   S.viewerId = next.id; S.editing = false; S.draftEdits = {}; S.histOpen = false;
 }
+
+/* 실행 뒤 다시 그리면 안 되는 동작 */
+var NO_RENDER = { pickFiles: 1 };
 
 var INPUTS = {
   globalQ: function (val) { S.globalQ = val; },
@@ -4602,6 +4682,9 @@ app.addEventListener('click', function (e) {
   if (!ACTIONS[act]) return;
   e.preventDefault();
   ACTIONS[act](node.dataset.arg);
+  /* 파일 대화상자를 연 직후 다시 그리면 그 input이 DOM에서 떨어져 나가고,
+     사용자가 고른 파일이 change로 돌아오지 못합니다. */
+  if (NO_RENDER[act]) return;
   render();
 });
 
