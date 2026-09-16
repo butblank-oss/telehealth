@@ -1294,6 +1294,17 @@ body { overscroll-behavior: none; }
   .call__self { width: 92px; height: 62px; }
 }
 
+/* 대화 끝의 상담 종료 버튼. 종료하면 같은 자리에 요약 카드가 앉습니다. */
+.close-cta {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--s4);
+  margin-top: var(--s2);
+}
+.close-cta__line { flex: 1; height: 1px; background: var(--line-2); }
+.close-cta__btn { flex: none; background: var(--surface); box-shadow: var(--sh-card); }
+
 /* ── 링크형 버튼 ──────────────────────────────────────────────── */
 .link-btn {
   min-height: var(--tap); padding: 0 var(--s3);
@@ -2393,6 +2404,15 @@ function roomView() {
     thread = msgs.map(function (m, i) { return msgView(m, msgs[i - 1]); }).join('');
     /* 상담이 끝나면 그 시점까지의 대화를 정리해 맨 끝에 남깁니다 */
     if (closed && !S.searchOpen) thread += summaryCard(room);
+    /* 진행 중이면 같은 자리에 종료 버튼을 둡니다 — 누르면 여기에 요약이 남습니다 */
+    else if (!closed && !archived && !trashed && !S.searchOpen && msgs.length) {
+      thread += '<div class="close-cta">'
+        + '<span class="close-cta__line"></span>'
+        + '<button type="button" class="btn btn--quiet close-cta__btn" data-act="askClose">'
+          + ic('checkc', 18) + '상담 종료하기</button>'
+        + '<span class="close-cta__line"></span>'
+      + '</div>';
+    }
   }
 
   var canSend = S.draft.trim().length > 0 || S.pendingFile;
@@ -2839,15 +2859,23 @@ function fileSheetBody() {
       + '이 방 자료 전체 보기</button>';
 }
 
+function closeSheetBody() {
+  var room = roomById(S.roomId);
+  return '<p class="field-hint" style="margin:0 0 var(--s5)">'
+      + '종료하기 전에 지금까지 오간 내용을 정리했습니다. '
+      + '종료해도 대화와 자료는 그대로 남고, 언제든 다시 열 수 있습니다.</p>'
+    + summaryBody(room);
+}
+
 function menuSheetBody() {
   var id = S.roomId;
   var items = [
     { act:'openSummary', icon:'list', label:'상담 요약 보기',
       sub:'지금까지 오간 내용을 한 장으로 정리해 보여줍니다', tone:'accent' },
     { act:'openInvite', icon:'userin', label:'의사 초대', sub:'초대된 의사는 지난 대화와 자료를 모두 봅니다', tone:'accent' },
-    { act:'toggleClosed', icon: S.closed[id] ? 'reopen' : 'checkc',
-      label: S.closed[id] ? '상담 다시 열기' : '상담 종료 처리',
-      sub: S.closed[id] ? '진행 중 목록으로 되돌립니다' : '기록과 자료는 남고 종료 탭으로 이동합니다', tone:'ok' },
+    { act:'askClose', icon: S.closed[id] ? 'reopen' : 'checkc',
+      label: S.closed[id] ? '상담 다시 열기' : '상담 종료하기',
+      sub: S.closed[id] ? '진행 중 목록으로 되돌립니다' : '대화를 요약해 남기고 종료함으로 옮깁니다', tone:'ok' },
     { act:'toggleArchived', icon:'archive',
       label: S.archived[id] ? '보관 해제' : '대화 보관',
       sub: S.archived[id] ? '진행 중 목록으로 되돌립니다' : '목록에서 숨기고 보관함으로 옮깁니다', tone:'plain' },
@@ -2884,12 +2912,13 @@ function sheetView() {
     files:  { w:'modal--lg',   title:'자료 분석', sub:room.name + ' · ' + filesOf(room.id).length + '건 · 만료 없음', body:filesSheetBody, action:null },
     file:   { w:'modal--md',   title:'자료 계측', sub:room.name, body:fileSheetBody, action:null },
     summary:{ w:'modal--lg',   title:'상담 요약', sub:room.name + ' · 대화에서 자동 정리', body:function () { return summaryBody(roomById(S.roomId)); }, action:null },
+    close:  { w:'modal--lg',   title:'상담 종료', sub:room.name + ' · 종료하면 종료함으로 옮겨집니다', body:closeSheetBody, action:'요약 남기고 종료' },
     menu:   { w:'modal--sm',   title:'방 관리',     sub:room.name, body:menuSheetBody, action:null }
   }[sheet];
 
   var canSubmit = sheet === 'invite'
     ? DOCTORS.some(function (d) { return S.picks[d.k] && memberKeys().indexOf(d.k) < 0; })
-    : S.formTitle.trim().length > 0;
+    : (sheet === 'close' ? true : S.formTitle.trim().length > 0);
 
   return '<div class="overlay" data-act="closeSheet" role="dialog" aria-modal="true" aria-label="' + esc(conf.title) + '">'
     + '<div class="' + cls('modal', conf.w) + '" data-stop="1">'
@@ -3134,6 +3163,18 @@ var ACTIONS = {
   openFileDetail: function (v) { S.fileId = v; S.sheet = 'file'; },
   openSummary: function () { S.sheet = 'summary'; },
 
+  /* 종료는 요약을 확인하고 나서 — 되돌리기(다시 열기)는 바로 */
+  askClose: function () {
+    if (S.closed[S.roomId]) { delete S.closed[S.roomId]; S.tab = 'open'; S.sheet = ''; return; }
+    S.sheet = 'close';
+  },
+  confirmClose: function () {
+    S.closed[S.roomId] = true;
+    S.tab = 'closed';
+    S.sheet = '';
+    threadToBottom = true;
+  },
+
   startVoice: function () { startCall('voice'); },
   startVideo: function () { startCall('video'); },
   toggleMute: function () { if (S.call) S.call.mute = !S.call.mute; },
@@ -3147,6 +3188,7 @@ var ACTIONS = {
   fileFilter: function (v) { S.fileFilter = v; },
 
   submitSheet: function () {
+    if (S.sheet === 'close') { ACTIONS.confirmClose(); return; }
     if (S.sheet === 'invite') {
       DOCTORS.forEach(function (d) {
         if (S.picks[d.k]) { S.joined[d.k] = true; delete S.removed[d.k]; }
@@ -3179,7 +3221,6 @@ var ACTIONS = {
   },
 
   removeMember: function (v) { S.removed[v] = true; },
-  toggleClosed: function () { toggleFlag('closed', 'closed'); },
   toggleArchived: function () { toggleFlag('archived', 'archive'); },
   toggleTrashed: function () { toggleFlag('trashed', 'archive'); },
   exportRoom: function () { S.sheet = ''; },
