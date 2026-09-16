@@ -1368,6 +1368,108 @@ body { overscroll-behavior: none; }
   .room-header__actions { gap: 0; }
 }
 
+/* ── 자료 뷰어 ────────────────────────────────────────────────── */
+
+.viewer-overlay { align-items: center; padding: var(--s9); }
+.viewer {
+  width: 100%;
+  max-width: 1000px;
+  max-height: calc(100dvh - 40px);
+  background: var(--surface);
+  border-radius: var(--r-xl);
+  box-shadow: var(--sh-modal);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.viewer__head {
+  flex: none;
+  display: flex; align-items: center; gap: var(--s3);
+  padding: var(--s5) var(--s6);
+  border-bottom: 1px solid var(--line);
+}
+.viewer__body { flex: 1 1 auto; min-height: 0; display: flex; }
+
+.viewer__stage {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex; flex-direction: column;
+  background: var(--canvas);
+  padding: var(--s6);
+  gap: var(--s4);
+}
+.viewer__image {
+  flex: 1 1 0;
+  min-height: 240px;
+  position: relative;
+  border-radius: var(--r-md);
+  background: var(--media);
+  display: flex; align-items: center; justify-content: center;
+}
+.viewer__tag {
+  position: absolute; top: var(--s4); left: var(--s4);
+  font-size: 11px; font-weight: 700;
+  color: var(--ink-1); background: rgba(255, 255, 255, .94);
+  padding: 2px 7px; border-radius: 4px;
+}
+.viewer__nav { flex: none; display: flex; align-items: center; justify-content: center; gap: var(--s5); }
+
+.viewer__side {
+  flex: none;
+  width: 320px;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--s6);
+  border-left: 1px solid var(--line);
+}
+.viewer__side-head { display: flex; align-items: center; gap: var(--s2); margin-bottom: var(--s4); }
+.metric-list .metric-row { border-bottom: 1px solid var(--canvas-2); min-height: 36px; }
+.metric-list.is-editing .metric-row { border-bottom: none; }
+.metric-row--edit { display: block; padding: var(--s2) 0; }
+.metric-row--edit .metric-row__k { display: block; margin-bottom: 4px; }
+.metric-row__flag {
+  font-size: var(--t5); font-weight: 700; letter-spacing: 0;
+  color: var(--warn); background: var(--warn-soft);
+  padding: 1px 5px; border-radius: 4px;
+}
+.viewer__edit-actions { display: flex; gap: var(--s3); margin-top: var(--s5); }
+
+.viewer__hist { margin-top: var(--s7); border-top: 1px solid var(--line); padding-top: var(--s4); }
+.viewer__hist-toggle {
+  display: flex; align-items: center; gap: var(--s2);
+  width: 100%; min-height: var(--tap);
+  font-size: var(--t4); font-weight: 600; color: var(--ink-2);
+}
+.viewer__hist-list { margin: var(--s2) 0 0; padding: 0; list-style: none; }
+.viewer__hist-item { padding: var(--s3) 0; border-bottom: 1px solid var(--canvas-2); }
+.viewer__hist-item:last-child { border-bottom: none; }
+.viewer__from { color: var(--ink-3); text-decoration: line-through; }
+.viewer__note {
+  margin: var(--s7) 0 0;
+  font-size: var(--t5); font-weight: 500; letter-spacing: 0; line-height: 1.6;
+  color: var(--ink-3);
+}
+
+.file-card { display: block; width: 100%; text-align: left; }
+.file-card__thumb { display: flex; }
+.file-card__edited {
+  position: absolute; top: 6px; right: 6px;
+  font-size: 11px; font-weight: 700;
+  color: var(--warn); background: var(--warn-soft);
+  padding: 1px 6px; border-radius: 4px;
+}
+
+@media (max-width: 1009px) {
+  .viewer-overlay { align-items: flex-end; padding: 0; }
+  .viewer { max-width: none; border-radius: var(--r-xl) var(--r-xl) 0 0; max-height: 92dvh; }
+  .viewer__body { flex-direction: column; }
+  .viewer__stage { flex: none; }
+  .viewer__image { min-height: 180px; }
+  .viewer__side { width: auto; border-left: none; border-top: 1px solid var(--line); }
+}
+
+.home { max-width: 860px; margin: 0 auto; }
+
 /* ── 링크형 버튼 ──────────────────────────────────────────────── */
 .link-btn {
   min-height: var(--tap); padding: 0 var(--s3);
@@ -1478,101 +1580,84 @@ var MSGS = {
 var FILES = {
   p1: [
     { id:'p1f1', name:'기립 전후면', tag:'X-ray', when:'3월 11일', size:'4.2MB',
-      caption:'내측 관절간격 3.1mm · 외측 5.9mm · 대퇴경골각 178.4°',
-      metrics:[['내측 관절간격','3.1 mm','warn'],['외측 관절간격','5.9 mm','ok'],
-               ['대퇴경골각(FTA)','178.4°','ok'],['내측 골극','경도','warn']],
+      metrics:[['내측 관절간격','3.1 mm','warn'],['외측 관절간격','5.9 mm','ok','외측'],
+               ['대퇴경골각(FTA)','178.4°','ok','대퇴경골각'],['내측 골극','경도','warn']],
       note:'내측 간격이 외측의 53%입니다. 체중부하 상태에서 촬영되었습니다.' },
     { id:'p1f2', name:'측면', tag:'X-ray', when:'3월 11일', size:'3.9MB',
-      caption:'슬개골 높이 1.02 · 경골 후방경사 8.4° · 관절삼출 없음',
-      metrics:[['슬개골 높이(IS비)','1.02','ok'],['경골 후방경사','8.4°','ok'],
+      metrics:[['슬개골 높이(IS비)','1.02','ok','슬개골 높이'],['경골 후방경사','8.4°','ok'],
                ['관절삼출','없음','ok'],['후방 골극','없음','ok']],
       note:'슬개대퇴 관절면은 좁아진 곳이 보이지 않습니다.' },
     { id:'p1f3', name:'무릎 외관', tag:'사진', when:'3월 11일', size:'1.8MB',
-      caption:'좌우 둘레차 +1.2cm · 내측 부기 경도 · 발적 없음',
       metrics:[['좌우 둘레차','+1.2 cm','warn'],['부기','내측 경도','warn'],
                ['발적','없음','ok'],['피부 병변','없음','ok']],
       note:'수술 흉터나 천자 자국은 보이지 않습니다.' },
     { id:'p1f4', name:'보행 영상', tag:'영상', when:'3월 14일', size:'18MB',
-      caption:'무릎 굽힘 최대 118° · 신전 -4° · 보행속도 0.94m/s',
-      metrics:[['최대 굽힘 각도','118°','warn'],['신전 각도','-4°','warn'],
-               ['입각기 비율','좌 58% / 우 62%','warn'],['보행속도','0.94 m/s','warn'],
+      metrics:[['최대 굽힘 각도','118°','warn','무릎 굽힘 최대'],['신전 각도','-4°','warn','신전'],
+               ['보행속도','0.94 m/s','warn'],['입각기 비율','좌 58% / 우 62%','warn'],
                ['분속수','102 steps/min','ok']],
       note:'정상 굽힘은 135° 안팎입니다. 완전히 펴지지 않아 신전이 4° 모자랍니다. 아픈 쪽을 딛는 시간이 반대쪽보다 짧습니다.' },
     { id:'p1f5', name:'Rosenberg view', tag:'X-ray', when:'3월 12일', size:'3.8MB',
-      caption:'45° 굴곡 내측 간격 2.4mm · 기립 대비 23% 감소',
-      metrics:[['내측 관절간격','2.4 mm','warn'],['외측 관절간격','5.6 mm','ok'],
-               ['기립 대비 변화','-23%','warn'],['촬영 각도','45.2°','ok']],
+      metrics:[['내측 관절간격','2.4 mm','warn','45° 굴곡 내측'],['기립 대비 변화','-23%','warn','기립 대비'],
+               ['외측 관절간격','5.6 mm','ok','외측'],['촬영 각도','45.2°','ok']],
       note:'굴곡 상태에서 내측이 더 좁아집니다. 기립 전후면만으로는 보이지 않던 차이입니다.' },
     { id:'p1f6', name:'재활 계획서', tag:'PDF', when:'3월 14일', size:'0.4MB',
-      caption:'문서 6쪽 · 6주 · 주 2회 · 대퇴사두근 강화 중심',
       metrics:[['기간','6주','plain'],['빈도','주 2회','plain'],
                ['주 운동','대퇴사두근 등척성','plain'],['재평가','6주 후 재촬영','plain']],
       note:'통증이 늘면 횟수보다 강도를 먼저 줄이도록 적혀 있습니다.' }
   ],
   p2: [
     { id:'p2f1', name:'발목 외측', tag:'사진', when:'3월 12일', size:'2.1MB',
-      caption:'좌우 둘레차 +2.8cm · 멍 3.5×2.1cm · 외과 주위 부종',
-      metrics:[['좌우 둘레차','+2.8 cm','warn'],['멍 크기','3.5 × 2.1 cm','warn'],
-               ['부종 위치','외과 주위','warn'],['변형','없음','ok']],
+      metrics:[['좌우 둘레차','+2.8 cm','warn'],['멍 크기','3.5 × 2.1 cm','warn','멍'],
+               ['부종 위치','외과 주위','warn','부종'],['변형','없음','ok']],
       note:'외상 2주 경과 시점의 사진입니다. 인대 손상 여부는 사진으로 판단할 수 없습니다.' },
     { id:'p2f2', name:'발목 정면', tag:'사진', when:'3월 12일', size:'2.0MB',
-      caption:'정렬 유지 · 전방 부종 · 발적 없음',
       metrics:[['정렬','유지','ok'],['전방 부종','중등도','warn'],['발적','없음','ok']],
       note:'양쪽 발을 같은 각도에서 찍어 비교했습니다.' },
     { id:'p2f3', name:'부종 범위', tag:'사진', when:'3월 12일', size:'1.9MB',
-      caption:'부종 범위 외과 하방 6cm까지 · 함요부종 1도',
       metrics:[['부종 범위','외과 하방 6 cm','warn'],['함요부종','1도','warn'],
                ['피부 온도차','촬영으로 판단 불가','plain']],
       note:'범위 표시는 촬영된 눈금자를 기준으로 계산했습니다.' }
   ],
   p3: [
     { id:'p3f1', name:'요추 측면', tag:'X-ray', when:'3월 6일', size:'4.6MB',
-      caption:'L4-5 전방전위 6.2mm · Meyerding 1도 · 추간판 높이 -38%',
-      metrics:[['L4-5 전방전위','6.2 mm','warn'],['Meyerding 등급','1도','warn'],
+      metrics:[['L4-5 전방전위','6.2 mm','warn'],['Meyerding 등급','1도','warn','Meyerding'],
                ['추간판 높이','-38%','warn'],['요추 전만각','42°','ok']],
       note:'굴곡·신전 촬영이 함께 있으면 불안정성 여부를 볼 수 있습니다.' },
     { id:'p3f2', name:'요추 전후면', tag:'X-ray', when:'3월 6일', size:'4.4MB',
-      caption:'측만 4.1° · 협부 결손 의심 · 척추경 좌우 대칭',
-      metrics:[['측만각','4.1°','ok'],['협부 결손','의심','warn'],['척추경','대칭','ok']],
+      metrics:[['측만각','4.1°','ok','측만'],['협부 결손','의심','warn'],['척추경','대칭','ok']],
       note:'협부는 사각 촬영이나 CT에서 더 분명히 보입니다.' },
     { id:'p3f3', name:'요추 MRI', tag:'MRI', when:'3월 6일', size:'24MB',
-      caption:'L4-5 추간공 협착 중등도 · 좌측 신경근 압박 · 68장',
-      metrics:[['추간공 협착','중등도(L4-5)','warn'],['신경근 압박','좌측 L5','warn'],
-               ['추간판 탈출','후외측 4.1 mm','warn'],['영상 매수','68장','plain']],
+      metrics:[['추간공 협착','중등도(L4-5)','warn','L4-5 추간공 협착'],['신경근 압박','좌측 L5','warn'],
+               ['영상 매수','68장','plain'],['추간판 탈출','후외측 4.1 mm','warn']],
       note:'증상이 나타나는 쪽과 압박된 쪽이 같은지 확인이 필요합니다.' }
   ],
   p4: [
     { id:'p4f1', name:'좌측 전후면', tag:'X-ray', when:'3월 2일', size:'8.8MB',
-      caption:'대퇴 삽입물 외반 5.8° · 투명선 없음 · 정렬 양호',
-      metrics:[['대퇴 삽입물 각','외반 5.8°','ok'],['투명선','없음','ok'],
-               ['하지 정렬','179.1°','ok'],['골용해','없음','ok']],
+      metrics:[['대퇴 삽입물 각','외반 5.8°','ok','대퇴 삽입물'],['투명선','없음','ok'],
+               ['하지 정렬','179.1°','ok','정렬'],['골용해','없음','ok']],
       note:'6개월 전 촬영본과 비교했을 때 위치 변화가 없습니다.' },
     { id:'p4f2', name:'좌측 측면', tag:'X-ray', when:'3월 2일', size:'8.2MB',
-      caption:'경골 삽입물 후방경사 3.2° · 슬개골 궤도 정상',
       metrics:[['경골 후방경사','3.2°','ok'],['슬개골 궤도','정상','ok'],['시멘트 경계','온전','ok']],
       note:'' },
     { id:'p4f3', name:'우측 전후면', tag:'X-ray', when:'3월 2일', size:'8.6MB',
-      caption:'수술 전 · 내측 관절간격 1.9mm · 내반 변형 6.4°',
       metrics:[['내측 관절간격','1.9 mm','warn'],['내반 변형','6.4°','warn'],['골극','중등도','warn']],
       note:'반대쪽입니다. 수술한 왼쪽과 비교용으로 함께 올렸습니다.' },
     { id:'p4f4', name:'우측 측면', tag:'X-ray', when:'3월 2일', size:'8.1MB',
-      caption:'수술 전 · 후방 골극 · 관절삼출 경도',
       metrics:[['후방 골극','있음','warn'],['관절삼출','경도','warn'],['슬개골 높이','0.98','ok']],
       note:'' }
   ],
   p5: [
     { id:'p5f1', name:'어깨 정면', tag:'X-ray', when:'3월 3일', size:'3.6MB',
-      caption:'견봉하 간격 7.8mm · 견봉 II형 · 석회 없음',
-      metrics:[['견봉하 간격','7.8 mm','warn'],['견봉 형태','II형(곡선형)','warn'],
-               ['석회 침착','없음','ok'],['관절와 상완 정렬','유지','ok']],
+      metrics:[['견봉하 간격','7.8 mm','warn'],['견봉 형태','II형(곡선형)','warn','견봉'],
+               ['석회 침착','없음','ok','석회'],['관절와 상완 정렬','유지','ok']],
       note:'견봉하 간격이 7mm 아래로 더 좁아지면 회전근개 상태를 다시 봐야 합니다.' },
     { id:'p5f2', name:'어깨 사진', tag:'사진', when:'3월 3일', size:'1.7MB',
-      caption:'외관 대칭 · 근위축 없음 · 능동 거상 142°',
-      metrics:[['좌우 대칭','유지','ok'],['근위축','없음','ok'],
-               ['능동 거상','142°','warn'],['수동 거상','168°','ok']],
+      metrics:[['능동 거상','142°','warn'],['수동 거상','168°','ok'],
+               ['좌우 대칭','유지','ok','대칭'],['근위축','없음','ok']],
       note:'스스로 드는 각도가 남이 들어줄 때보다 26° 적습니다.' }
   ]
 };
+
 
 var PEOPLE = {
   han:{ name:'한상호 원장', org:'대찬병원 · 정형외과', initial:'한', tone:'steel' },
@@ -1658,6 +1743,12 @@ var S = {
   trashed: {},
   fileFilter: 'all',
   fileId: '',
+  fileEdits: {},
+  fileHistory: {},
+  viewerId: '',
+  editing: false,
+  draftEdits: {},
+  histOpen: false,
   callLog: {},
   call: null,
   globalQ: '무릎',
@@ -1704,6 +1795,85 @@ function fileById(roomId, id) {
   for (var i = 0; i < list.length; i++) if (list[i].id === id) return list[i];
   return null;
 }
+function fileRoom(id) {
+  var keys = Object.keys(FILES);
+  for (var i = 0; i < keys.length; i++) {
+    if (fileById(keys[i], id)) return keys[i];
+  }
+  return S.roomId;
+}
+
+/* 계측값은 시드 위에 의사가 고친 값을 덮어 읽습니다.
+   이 한 군데를 거치게 해 두면 대화창 캡션·패널 카드·계측표가 모두 같은 값을 봅니다. */
+function metricsOf(f) {
+  var edits = S.fileEdits[f.id] || {};
+  return f.metrics.map(function (m, i) {
+    var v = edits[i];
+    return v == null ? m : [m[0], v, m[2], m[3], true];
+  });
+}
+function isEdited(f) {
+  return !!(S.fileEdits[f.id] && Object.keys(S.fileEdits[f.id]).length);
+}
+/* 캡션은 앞 세 개 계측값에서 만듭니다 — 값을 고치면 캡션이 저절로 따라옵니다 */
+function captionOf(f) {
+  var ms = metricsOf(f).slice(0, 3);
+  if (!ms.length) return '';
+  return ms.map(function (m) { return (m[3] || m[0]) + ' ' + m[1]; }).join(' · ');
+}
+function historyOf(id) {
+  return S.fileHistory[id] || [];
+}
+
+/* 편집 저장. 바뀐 항목만 히스토리와 감사 로그에 남깁니다 — 의료 자료라 흔적이 필요합니다. */
+function saveFileEdits(f, draft) {
+  var base = S.fileEdits[f.id] || {};
+  var next = {}, changes = [];
+  f.metrics.forEach(function (m, i) {
+    var cur = base[i] == null ? m[1] : base[i];
+    var val = draft[i] == null ? cur : String(draft[i]).trim();
+    if (!val) val = cur;
+    if (val !== m[1]) next[i] = val;
+    if (val !== cur) changes.push({ label:m[0], from:cur, to:val });
+  });
+  if (!changes.length) return 0;
+
+  if (Object.keys(next).length) S.fileEdits[f.id] = next;
+  else delete S.fileEdits[f.id];
+
+  var who = PEOPLE[S.me].name;
+  S.fileHistory[f.id] = changes.map(function (c) {
+    return { when:'방금', who:who, label:c.label, from:c.from, to:c.to };
+  }).concat(historyOf(f.id));
+
+  AUDIT_ROWS.unshift(['방금', who, '계측 수정',
+    roomById(fileRoom(f.id)).name + ' · ' + f.name + ' · ' + changes.length + '개 항목',
+    'Web · 협진톡', 'edit']);
+  saveEdits();
+  return changes.length;
+}
+
+/* 고친 값은 이 브라우저에 남겨 새로고침 뒤에도 유지합니다 */
+function saveEdits() {
+  try {
+    localStorage.setItem('hjt-file-edits',
+      JSON.stringify({ edits:S.fileEdits, history:S.fileHistory }));
+  } catch (e) {}
+}
+function loadEdits() {
+  try {
+    var raw = JSON.parse(localStorage.getItem('hjt-file-edits') || '{}');
+    if (raw && typeof raw === 'object') {
+      S.fileEdits = raw.edits || {};
+      S.fileHistory = raw.history || {};
+    }
+  } catch (e) {}
+}
+function resetEdits() {
+  S.fileEdits = {};
+  S.fileHistory = {};
+  try { localStorage.removeItem('hjt-file-edits'); } catch (e) {}
+}
 /* 방 전체 자료를 한 덩어리로 정리합니다 — 종류별 건수, 기간, 눈여겨볼 계측값 수 */
 function filesDigest(roomId) {
   var list = filesOf(roomId);
@@ -1711,7 +1881,7 @@ function filesDigest(roomId) {
   list.forEach(function (f) {
     if (byTag[f.tag] == null) { byTag[f.tag] = 0; order.push(f.tag); }
     byTag[f.tag]++;
-    (f.metrics || []).forEach(function (m) {
+    metricsOf(f).forEach(function (m) {
       metrics++;
       if (m[2] === 'warn') flagged++;
     });
@@ -1843,6 +2013,11 @@ var PATHS = {
   list:     '<path d="M8 6h13M8 12h13M8 18h13"/><path d="M3.5 6h.01M3.5 12h.01M3.5 18h.01"/>',
   logout:   '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/>',
   dots:     '<circle cx="12" cy="5" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="12" cy="19" r="1.4"/>',
+  pencil:   '<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/>',
+  expand:   '<path d="M15 3h6v6"/><path d="M9 21H3v-6"/><path d="M21 3l-7 7"/><path d="M3 21l7-7"/>',
+  up:       '<path d="m18 15-6-6-6 6"/>',
+  down:     '<path d="m6 9 6 6 6-6"/>',
+  home:     '<path d="m3 10 9-7 9 7v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 21v-8h6v8"/>',
   phone:    '<path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.4-1.2a2 2 0 0 1 2.1-.5c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z"/>',
   phoneOff: '<path d="M10.7 5.1A13 13 0 0 1 14 4.7c.9.1 1.8.4 2.7.7a2 2 0 0 1 1.3 1.9v3"/><path d="M5.5 8.6a16 16 0 0 0-1.4-4.4A2 2 0 0 1 6.1 2h3a2 2 0 0 1 2 1.7"/><path d="m2 2 20 20"/><path d="M8.1 9.9a16 16 0 0 0 6 6l1.4-1.2a2 2 0 0 1 2.1-.5c.9.3 1.8.6 2.7.7A2 2 0 0 1 22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6"/>',
   video:    '<path d="m22 8-6 4 6 4z"/><rect x="2" y="6" width="14" height="12" rx="2"/>',
@@ -2189,10 +2364,11 @@ function navRailView() {
   var me = PEOPLE[S.me];
   var unread = S.notiRead ? 0 : NOTIS.filter(function (n) { return n.unread; }).length;
   var items = [
-    { page:'rooms', icon:'chat',   label:'협진', match:['rooms','room'] },
+    { page:'home',   icon:'home',   label:'홈',   match:['home'] },
+    { page:'rooms',  icon:'chat',   label:'협진', match:['rooms','room'] },
     { page:'search', icon:'search', label:'검색', match:['search'] },
-    { page:'notis', icon:'bell',   label:'알림', match:['notis'], dot:unread > 0 },
-    { page:'admin', icon:'shield', label:'운영자', match:['admin'] }
+    { page:'notis',  icon:'bell',   label:'알림', match:['notis'], dot:unread > 0 },
+    { page:'admin',  icon:'shield', label:'운영자', match:['admin'] }
   ];
   return '<nav class="navrail" aria-label="주요 화면">'
     + '<div class="navrail__logo" aria-hidden="true">협</div>'
@@ -2301,12 +2477,15 @@ function msgView(m, prev) {
 
   var linked = m.fileId ? fileById(S.roomId, m.fileId) : null;
 
-  /* 첨부에 붙는 자동 계측 캡션. 의사가 쓴 소견과 섞이지 않게 '자동 계측' 배지를 답니다. */
-  function captionOf(f) {
-    if (!f || !f.caption) return '';
-    return '<button type="button" class="bubble__caption" data-act="openFileDetail" data-arg="' + esc(f.id) + '">'
-      + '<span class="badge--auto">자동 계측</span>'
-      + '<span class="bubble__caption-text">' + esc(f.caption) + '</span>'
+  /* 첨부에 붙는 자동 계측 캡션. 의사가 쓴 소견과 섞이지 않게 '자동 계측' 배지를 답니다.
+     값이 수정되면 여기 글자도 같이 바뀝니다 — 캡션을 계측값에서 만들기 때문입니다. */
+  function captionTag(f) {
+    if (!f) return '';
+    var cap = captionOf(f);
+    if (!cap) return '';
+    return '<button type="button" class="bubble__caption" data-act="openViewer" data-arg="' + esc(f.id) + '">'
+      + '<span class="badge--auto">' + (isEdited(f) ? '수정됨' : '자동 계측') + '</span>'
+      + '<span class="bubble__caption-text">' + esc(cap) + '</span>'
       + ic('next', 14)
     + '</button>';
   }
@@ -2318,7 +2497,7 @@ function msgView(m, prev) {
       + ' aria-label="' + esc(m.img) + '">'
       + '<span class="bubble__media-tag">' + esc(m.imgTag || '사진') + '</span>'
       + '<span class="t5" style="font-weight:500;letter-spacing:0;color:var(--ink-2)">' + esc(m.img) + '</span></span>';
-    inner += captionOf(linked);
+    inner += captionTag(linked);
   }
   if (m.file) {
     inner += '<span class="bubble__file" style="' + (m.body ? 'margin-top:9px' : 'margin-top:0') + '">'
@@ -2327,7 +2506,7 @@ function msgView(m, prev) {
         + '<span class="bubble__file-name truncate">' + esc(m.file) + '</span>'
         + '<span class="bubble__file-meta truncate">' + esc(m.fileSize || '') + '</span>'
       + '</span></span>';
-    inner += captionOf(linked);
+    inner += captionTag(linked);
   }
 
   out += '<div class="' + cls('msg', mine && 'msg--mine', grouped && !mine && 'msg--grouped') + '">'
@@ -2553,37 +2732,146 @@ function roomView() {
 /* ── 11. 환자 정보 · 자료 패널 ─────────────────────────────────── */
 
 function fileCard(f, withCaption) {
-  return '<div class="file-card">'
-    + '<div class="file-card__thumb">'
+  return '<button type="button" class="file-card" data-act="openViewer" data-arg="' + esc(f.id) + '"'
+    + ' aria-label="' + esc(f.name) + ' 크게 보기">'
+    + '<span class="file-card__thumb">'
       + '<span class="file-card__tag">' + esc(f.tag) + '</span>'
+      + (isEdited(f) ? '<span class="file-card__edited">수정됨</span>' : '')
       + '<span>' + esc(f.name) + '</span>'
-    + '</div>'
-    + (withCaption && f.caption
-        ? '<div class="file-card__caption">'
-          + '<span class="badge--auto">자동 계측</span> ' + esc(f.caption)
-        + '</div>'
+    + '</span>'
+    + (withCaption
+        ? '<span class="file-card__caption">'
+          + '<span class="badge--auto">자동 계측</span> ' + esc(captionOf(f))
+        + '</span>'
         : '')
-  + '</div>';
+  + '</button>';
 }
 
-/* 자료 하나를 계측표까지 펼쳐 보여줍니다 */
-function fileDetail(f) {
-  var rows = (f.metrics || []).map(function (m) {
+/* 계측표. 편집 모드면 값이 입력칸이 됩니다. */
+function metricRows(f, editing) {
+  return metricsOf(f).map(function (m, i) {
+    if (editing) {
+      var v = S.draftEdits[i] == null ? m[1] : S.draftEdits[i];
+      return '<div class="metric-row metric-row--edit">'
+        + '<label class="metric-row__k" for="mx' + i + '">' + esc(m[0]) + '</label>'
+        + field({ k:'mx' + i, action:'metricEdit', arg:String(i), value:v, ph:'예: ' + m[1] })
+      + '</div>';
+    }
     var fg = m[2] === 'warn' ? 'var(--warn)' : (m[2] === 'ok' ? 'var(--ok)' : 'var(--ink-2)');
     return '<div class="metric-row">'
       + '<span class="metric-row__k">' + esc(m[0]) + '</span>'
-      + '<span class="metric-row__v" style="color:' + fg + '">' + esc(m[1]) + '</span>'
+      + '<span class="metric-row__v" style="color:' + fg + '">' + esc(m[1])
+        + (m[4] ? ' <span class="metric-row__flag">수정됨</span>' : '') + '</span>'
     + '</div>';
   }).join('');
+}
+
+/* 목록에서 쓰는 요약형 계측표 (읽기 전용) */
+function fileDetail(f) {
   return '<div class="file-detail">'
     + '<div class="file-detail__head">'
       + '<span class="badge badge--accent">' + esc(f.tag) + '</span>'
       + '<span class="t3-strong grow truncate">' + esc(f.name) + '</span>'
+      + (isEdited(f) ? '<span class="badge badge--warn">수정됨</span>' : '')
       + '<span class="t5" style="color:var(--ink-3);font-weight:500;letter-spacing:0">'
         + esc(f.when) + ' · ' + esc(f.size || '') + '</span>'
     + '</div>'
-    + (rows ? '<div class="metric-grid">' + rows + '</div>' : '')
+    + '<div class="metric-grid">' + metricRows(f, false) + '</div>'
     + (f.note ? '<p class="t4" style="margin:var(--s4) 0 0;color:var(--ink-2)">' + esc(f.note) + '</p>' : '')
+    + '<button type="button" class="btn btn--quiet" style="width:100%;margin-top:var(--s5)"'
+      + ' data-act="openViewer" data-arg="' + esc(f.id) + '">'
+      + ic('expand', 16) + '크게 보기 · 계측 수정</button>'
+  + '</div>';
+}
+
+/* 자료 뷰어 — 확대해 보고, 계측을 고치고, 고친 내역을 확인하는 한 화면 */
+function viewerView() {
+  if (!S.viewerId) return '';
+  var rid = fileRoom(S.viewerId);
+  var f = fileById(rid, S.viewerId);
+  if (!f) return '';
+  var list = filesOf(rid);
+  var idx = list.map(function (x) { return x.id; }).indexOf(f.id);
+  var hist = historyOf(f.id);
+  var editing = S.editing;
+
+  return '<div class="overlay viewer-overlay" data-act="closeViewer" role="dialog" aria-modal="true"'
+      + ' aria-label="' + esc(f.name) + ' 자료 보기">'
+    + '<div class="viewer" data-stop="1">'
+      + '<div class="viewer__head">'
+        + '<span class="badge badge--accent">' + esc(f.tag) + '</span>'
+        + '<div class="grow truncate">'
+          + '<div class="t2 truncate">' + esc(f.name) + '</div>'
+          + '<div class="t5" style="color:var(--ink-3);font-weight:500;letter-spacing:0">'
+            + esc(roomById(rid).name) + ' · ' + esc(f.when) + ' · ' + esc(f.size || '') + '</div>'
+        + '</div>'
+        + iconBtn('closeViewer', '닫기', ic('x', 20), 'btn--quiet')
+      + '</div>'
+
+      + '<div class="viewer__body">'
+        + '<div class="viewer__stage">'
+          + '<div class="viewer__image">'
+            + '<span class="viewer__tag">' + esc(f.tag) + '</span>'
+            + '<span class="t4" style="color:var(--ink-3)">' + esc(f.name) + '</span>'
+          + '</div>'
+          + (list.length > 1
+              ? '<div class="viewer__nav">'
+                + '<button type="button" class="btn btn--icon btn--quiet" data-act="viewerPrev"'
+                  + ' aria-label="이전 자료">' + ic('back', 20) + '</button>'
+                + '<span class="t4 num">' + (idx + 1) + ' / ' + list.length + '</span>'
+                + '<button type="button" class="btn btn--icon btn--quiet" data-act="viewerNext"'
+                  + ' aria-label="다음 자료">' + ic('next', 20) + '</button>'
+              + '</div>'
+              : '')
+        + '</div>'
+
+        + '<div class="viewer__side">'
+          + '<div class="viewer__side-head">'
+            + '<span class="t5" style="color:var(--ink-3)">자동 계측</span>'
+            + (isEdited(f) ? '<span class="badge badge--warn">수정됨</span>' : '')
+            + '<span class="grow"></span>'
+            + (editing
+                ? ''
+                : '<button type="button" class="link-btn" data-act="startEdit">'
+                  + ic('pencil', 15) + '수정</button>')
+          + '</div>'
+          + '<div class="' + cls('metric-list', editing && 'is-editing') + '">'
+            + metricRows(f, editing) + '</div>'
+          + (editing
+              ? '<p class="field-hint">고친 값은 대화창 캡션과 자료 목록에 함께 반영되고, '
+                + '누가 언제 무엇을 바꿨는지 남습니다.</p>'
+                + '<div class="viewer__edit-actions">'
+                  + '<button type="button" class="btn btn--quiet" data-act="cancelEdit">취소</button>'
+                  + '<button type="button" class="btn btn--primary grow" data-act="saveEdit">저장</button>'
+                + '</div>'
+              : (f.note ? '<p class="t4" style="margin:var(--s5) 0 0;color:var(--ink-2)">' + esc(f.note) + '</p>' : ''))
+
+          + (hist.length
+              ? '<div class="viewer__hist">'
+                + '<button type="button" class="viewer__hist-toggle" data-act="toggleHist"'
+                  + ' aria-expanded="' + S.histOpen + '">'
+                  + ic('list', 15)
+                  + '<span class="grow">수정 내역 ' + hist.length + '건</span>'
+                  + ic(S.histOpen ? 'up' : 'down', 15)
+                + '</button>'
+                + (S.histOpen
+                    ? '<ul class="viewer__hist-list">' + hist.map(function (h) {
+                        return '<li class="viewer__hist-item">'
+                          + '<div class="t5" style="color:var(--ink-3)">' + esc(h.when) + ' · ' + esc(h.who) + '</div>'
+                          + '<div class="t4"><strong>' + esc(h.label) + '</strong> '
+                            + '<span class="viewer__from">' + esc(h.from) + '</span> '
+                            + ic('next', 12) + ' <strong>' + esc(h.to) + '</strong></div>'
+                        + '</li>';
+                      }).join('') + '</ul>'
+                    : '')
+              + '</div>'
+              : '')
+
+          + '<p class="viewer__note">자동으로 뽑은 계측값입니다. 값이 실제와 다르면 의사가 고칠 수 있으며, '
+            + '판독과 진단은 의사가 합니다.</p>'
+        + '</div>'
+      + '</div>'
+    + '</div>'
   + '</div>';
 }
 
@@ -2634,6 +2922,122 @@ function panelView() {
   + '</aside>';
 }
 
+/* ── 11-2. 홈 대시보드 ──────────────────────────────────────────
+   "지금 내가 뭘 해야 하나"에 답하는 화면입니다. 숫자는 전부 실제 데이터에서
+   셉니다 — 답변이 밀린 방, 눈여겨볼 계측값, 오늘 올라온 자료. */
+
+function homeStats() {
+  var list = pool().filter(live);
+  var waiting = [], flagged = [], recentFiles = [];
+
+  list.forEach(function (r) {
+    if (S.closed[r.id]) return;
+    /* 마지막 말이 내가 아닌 방 = 내 차례 */
+    var last = null;
+    r.threads.forEach(function (t) {
+      var ms = threadMsgs(r.id, t.id);
+      if (ms.length) last = ms[ms.length - 1];
+    });
+    if (last && last.who !== S.me && !last.system) waiting.push(r);
+
+    filesOf(r.id).forEach(function (f) {
+      var warn = metricsOf(f).filter(function (m) { return m[2] === 'warn'; });
+      if (warn.length >= 3) flagged.push({ room:r, file:f, warn:warn.length });
+      recentFiles.push({ room:r, file:f });
+    });
+  });
+
+  return {
+    open: list.filter(function (r) { return !S.closed[r.id]; }).length,
+    unread: list.filter(function (r) { return r.unread && !S.closed[r.id]; }).length,
+    waiting: waiting,
+    flagged: flagged.sort(function (a, b) { return b.warn - a.warn; }).slice(0, 4),
+    files: recentFiles.slice(0, 6),
+    edited: Object.keys(S.fileEdits).length
+  };
+}
+
+function homeScreen() {
+  var me = PEOPLE[S.me];
+  var x = homeStats();
+  var cards = [
+    ['진행 중 협진', x.open, '건', 'chat', ''],
+    ['내 답변 대기', x.waiting.length, '건', 'reply', x.waiting.length ? 'warn' : ''],
+    ['안 읽음', x.unread, '건', 'bell', x.unread ? 'danger' : ''],
+    ['수정된 계측', x.edited, '건', 'pencil', '']
+  ].map(function (c) {
+    var fg = c[4] === 'warn' ? 'var(--warn)' : (c[4] === 'danger' ? 'var(--danger)' : 'var(--ink-1)');
+    return '<div class="stat-card">'
+      + '<div class="stat-card__label">' + esc(c[0]) + '</div>'
+      + '<div class="stat-card__value" style="color:' + fg + '">' + c[1]
+        + '<span style="font-size:var(--t4);font-weight:600;margin-left:3px">' + esc(c[2]) + '</span></div>'
+    + '</div>';
+  }).join('');
+
+  var waiting = x.waiting.length
+    ? x.waiting.map(function (r) {
+        return '<button type="button" class="result-row" data-act="open" data-arg="' + esc(r.id) + '">'
+          + avatar(r.initial, r.tone)
+          + '<span class="grow truncate" style="display:block">'
+            + '<span class="t3-strong truncate" style="display:block">' + esc(r.name) + '</span>'
+            + '<span class="room-row__summary truncate" style="display:block;margin:0">' + esc(r.summary) + '</span>'
+            + '<span class="t4 truncate" style="display:block;color:var(--ink-3)">' + esc(r.last) + '</span>'
+          + '</span>'
+          + '<span class="badge badge--warn">답변 대기</span>'
+          + ic('next', 18)
+        + '</button>';
+      }).join('')
+    : '<div class="empty-state"><div class="empty-state__title">답변을 기다리는 협진이 없습니다</div>'
+      + '<div class="empty-state__body">새 문의가 오면 여기에 먼저 뜹니다</div></div>';
+
+  var flagged = x.flagged.length
+    ? x.flagged.map(function (o) {
+        return '<button type="button" class="result-card" data-act="openViewer" data-arg="' + esc(o.file.id) + '">'
+          + '<span class="row" style="gap:var(--s2);margin-bottom:4px">'
+            + '<span class="badge badge--accent">' + esc(o.file.tag) + '</span>'
+            + '<span class="t4-strong grow truncate">' + esc(o.room.name) + ' · ' + esc(o.file.name) + '</span>'
+            + '<span class="badge badge--warn">눈여겨볼 값 ' + o.warn + '</span>'
+          + '</span>'
+          + '<span class="t4" style="display:block;color:var(--ink-2)">' + esc(captionOf(o.file)) + '</span>'
+        + '</button>';
+      }).join('')
+    : '<div class="empty-state"><div class="empty-state__body">눈여겨볼 계측값이 없습니다</div></div>';
+
+  return '<div class="screen">'
+    + '<div class="screen__head">'
+      + avatar(me.initial, me.tone, 'md')
+      + '<div class="grow truncate">'
+        + '<div class="t2 truncate">' + esc(me.name.replace(' 원장', '')) + ' 원장님</div>'
+        + '<div class="t4 truncate">' + (x.waiting.length
+            ? '답변을 기다리는 협진이 ' + x.waiting.length + '건 있습니다'
+            : '답변을 기다리는 협진이 없습니다') + '</div>'
+      + '</div>'
+      + '<button type="button" class="btn btn--primary" data-act="openNew">'
+        + ic('plus', 18) + '새 협진 요청</button>'
+    + '</div>'
+    + '<div class="screen__body" data-sk="home"><div class="home">'
+      + '<div class="stat-grid">' + cards + '</div>'
+
+      + '<div class="row" style="justify-content:space-between;margin:var(--s9) 0 var(--s4)">'
+        + '<h2 class="sec-label" style="margin:0">내 답변을 기다리는 협진</h2>'
+        + '<button type="button" class="link-btn" data-act="go" data-arg="rooms">전체 보기</button>'
+      + '</div>'
+      + waiting
+
+      + '<h2 class="sec-label">눈여겨볼 계측값</h2>'
+      + flagged
+
+      + '<h2 class="sec-label">최근 자료</h2>'
+      + '<div class="thumb-grid">' + x.files.map(function (o) {
+          return fileCard(o.file, false);
+        }).join('') + '</div>'
+
+      + '<p class="legal">협진톡 v2.0 · 초대 전용 폐쇄형 서비스 · '
+        + '의료법 제34조에 따른 의료인 간 원격협력 도구입니다.</p>'
+    + '</div></div>'
+  + '</div>';
+}
+
 /* ── 12. 전역 검색 ─────────────────────────────────────────────── */
 
 function searchResults() {
@@ -2657,8 +3061,8 @@ function searchResults() {
   var files = [];
   list.forEach(function (r) {
     filesOf(r.id).forEach(function (f) {
-      if ((f.name + f.tag + (f.caption || '') + r.name + r.summary).indexOf(q) >= 0) {
-        files.push({ kind:f.name, tag:f.tag, room:r.name, when:f.when, caption:f.caption });
+      if ((f.name + f.tag + captionOf(f) + r.name + r.summary).indexOf(q) >= 0) {
+        files.push({ id:f.id, kind:f.name, tag:f.tag, room:r.name, when:f.when });
       }
     });
   });
@@ -2702,10 +3106,11 @@ function searchScreen() {
     if (r.files.length) {
       body += '<h2 class="sec-label">자료 ' + r.files.length + '건</h2>'
         + '<div class="thumb-grid">' + r.files.map(function (f) {
-          return '<div class="file-card"><div class="file-card__thumb">'
-            + '<span class="file-card__tag">' + esc(f.tag) + '</span>'
-            + '<span>' + esc(f.kind) + '<br><span style="color:var(--ink-3)">' + esc(f.room) + '</span></span>'
-          + '</div></div>';
+          return '<button type="button" class="file-card" data-act="openViewer" data-arg="' + esc(f.id) + '">'
+            + '<span class="file-card__thumb">'
+              + '<span class="file-card__tag">' + esc(f.tag) + '</span>'
+              + '<span>' + esc(f.kind) + '<br><span style="color:var(--ink-3)">' + esc(f.room) + '</span></span>'
+            + '</span></button>';
         }).join('') + '</div>';
     }
   }
@@ -2798,6 +3203,9 @@ function meScreen() {
               + esc(d[1]) + '</button>';
           }).join('')
       + '</div>'
+      + '<h2 class="sec-label">데모</h2>'
+      + '<button type="button" class="btn btn--quiet" style="width:100%" data-act="resetDemo">'
+        + '고친 계측값과 수정 내역 지우기</button>'
       + '<p class="legal">협진톡 v2.0 · 초대 전용 폐쇄형 서비스</p>'
       + '<p class="legal" style="font-size:var(--t5);font-weight:500;letter-spacing:0">'
         + '의료법 제34조에 따른 의료인 간 원격협력 도구입니다. 환자에 대한 책임은 같은 조 제4항에 따라 '
@@ -2810,7 +3218,8 @@ function meScreen() {
 
 function tabbarView() {
   var unread = S.notiRead ? 0 : NOTIS.filter(function (n) { return n.unread; }).length;
-  var items = [['rooms','협진','chat'],['search','검색','search'],['notis','알림','bell'],['me','내 정보','user']];
+  var items = [['home','홈','home'],['rooms','협진','chat'],['search','검색','search'],
+               ['notis','알림','bell'],['me','내 정보','user']];
   return '<nav class="tabbar" aria-label="주요 화면">' + items.map(function (t) {
     var active = S.page === t[0] || (t[0] === 'rooms' && S.page === 'room');
     return '<button type="button" class="' + cls('tabbar__item', active && 'is-active') + '"'
@@ -2937,15 +3346,6 @@ function analysisDigest(roomId) {
   + '</div>';
 }
 
-function fileSheetBody() {
-  var f = fileById(S.roomId, S.fileId);
-  if (!f) return '<div class="empty-state"><div class="empty-state__title">자료를 찾을 수 없습니다</div></div>';
-  return fileDetail(f)
-    + '<div class="note-ok">자동으로 뽑은 계측값입니다. 판독과 진단은 의사가 합니다.</div>'
-    + '<button type="button" class="btn btn--quiet" style="width:100%;margin-top:var(--s5)" data-act="openFiles">'
-      + '이 방 자료 전체 보기</button>';
-}
-
 function closeSheetBody() {
   var room = roomById(S.roomId);
   return '<p class="field-hint" style="margin:0 0 var(--s5)">'
@@ -2999,7 +3399,6 @@ function sheetView() {
     new:    { w:'',            title:'새 협진 요청', sub:'제목만 쓰면 바로 시작됩니다', body:newSheetBody, action:'협진 방 만들기' },
     invite: { w:'modal--md',   title:'의사 초대',   sub:room.name + ' 방에 의사를 추가합니다', body:inviteSheetBody, action:'초대하기' },
     files:  { w:'modal--lg',   title:'자료 분석', sub:room.name + ' · ' + filesOf(room.id).length + '건 · 만료 없음', body:filesSheetBody, action:null },
-    file:   { w:'modal--md',   title:'자료 계측', sub:room.name, body:fileSheetBody, action:null },
     summary:{ w:'modal--lg',   title:'상담 요약', sub:room.name + ' · 대화에서 자동 정리', body:function () { return summaryBody(roomById(S.roomId)); }, action:null },
     close:  { w:'modal--lg',   title:'상담 종료', sub:room.name + ' · 종료하면 종료함으로 옮겨집니다', body:closeSheetBody, action:'요약 남기고 종료' },
     menu:   { w:'modal--sm',   title:'방 관리',     sub:room.name, body:menuSheetBody, action:null }
@@ -3101,6 +3500,7 @@ function callView() {
 
 function mainArea() {
   var page = S.page;
+  if (page === 'home') return homeScreen();
   if (page === 'search') return searchScreen();
   if (page === 'notis') return notisScreen();
   if (page === 'me') return meScreen();
@@ -3116,13 +3516,15 @@ function railResizer() {
 
 function appView() {
   var showPanel = !isMobile() && S.page === 'room' && S.panelOpen;
+  var showList = S.page !== 'home';
   return '<div class="shell">'
-      + (isMobile() ? '' : navRailView() + railView() + railResizer())
+      + (isMobile() ? '' : navRailView() + (showList ? railView() + railResizer() : ''))
       + mainArea()
       + (showPanel ? panelView() : '')
     + '</div>'
     + (isMobile() ? tabbarView() : '')
     + sheetView()
+    + viewerView()
     + callView();
 }
 
@@ -3192,19 +3594,24 @@ function toggleFlag(map, tabWhenOn) {
 var ACTIONS = {
   noop: function () {},
 
-  login: function () { S.page = isMobile() ? 'rooms' : 'room'; },
+  login: function () { S.page = 'home'; },
   logout: function () { S.page = 'login'; },
   goOnboard: function () { S.page = 'onboard'; S.onbStep = 1; S.onbLicense = ''; S.onbShot = false; },
   goAdmin: function () { S.page = 'admin'; S.adminTab = 'usage'; },
-  goApp: function () { S.page = isMobile() ? 'rooms' : 'room'; },
-  go: function (v) { S.page = v; S.sheet = ''; },
+  goApp: function () { S.page = 'home'; },
+  go: function (v) {
+    /* PC에는 목록이 늘 왼쪽에 있으므로 '협진'은 곧 방 화면입니다.
+       'rooms'로 두면 방 화면인데도 환자 정보 패널이 사라집니다. */
+    if (v === 'rooms' && !isMobile()) v = 'room';
+    S.page = v; S.sheet = '';
+  },
 
   onbNext: function () {
     if (S.onbStep === 3 && !S.onbLicense.trim()) return;
     S.onbStep = Math.min(S.onbStep + 1, 4);
   },
   onbShot: function () { S.onbShot = true; },
-  onbDone: function () { S.page = isMobile() ? 'rooms' : 'room'; },
+  onbDone: function () { S.page = 'home'; },
 
   adminTab: function (v) { S.adminTab = v; },
   auditF: function (v) { S.auditF = v; },
@@ -3249,8 +3656,23 @@ var ACTIONS = {
   },
   openInvite: function () { S.sheet = 'invite'; S.showAllDocs = false; },
   openFiles: function () { S.sheet = 'files'; },
-  openFileDetail: function (v) { S.fileId = v; S.sheet = 'file'; },
   openSummary: function () { S.sheet = 'summary'; },
+
+  openViewer: function (v) {
+    S.viewerId = v; S.editing = false; S.draftEdits = {}; S.histOpen = false; S.sheet = '';
+  },
+  closeViewer: function () { S.viewerId = ''; S.editing = false; S.draftEdits = {}; },
+  viewerPrev: function () { stepViewer(-1); },
+  viewerNext: function () { stepViewer(1); },
+  startEdit: function () { S.editing = true; S.draftEdits = {}; },
+  cancelEdit: function () { S.editing = false; S.draftEdits = {}; },
+  saveEdit: function () {
+    var f = fileById(fileRoom(S.viewerId), S.viewerId);
+    if (f) saveFileEdits(f, S.draftEdits);
+    S.editing = false; S.draftEdits = {};
+  },
+  toggleHist: function () { S.histOpen = !S.histOpen; },
+  resetDemo: function () { resetEdits(); S.viewerId = ''; },
 
   /* 종료는 요약을 확인하고 나서 — 되돌리기(다시 열기)는 바로 */
   askClose: function () {
@@ -3326,13 +3748,23 @@ var ACTIONS = {
   switchMe: function (v) { S.me = v; }
 };
 
+function stepViewer(dir) {
+  var rid = fileRoom(S.viewerId);
+  var list = filesOf(rid);
+  var i = list.map(function (f) { return f.id; }).indexOf(S.viewerId);
+  if (i < 0) return;
+  var next = list[(i + dir + list.length) % list.length];
+  S.viewerId = next.id; S.editing = false; S.draftEdits = {}; S.histOpen = false;
+}
+
 var INPUTS = {
   globalQ: function (val) { S.globalQ = val; },
   query: function (val) { S.query = val; },
   draft: function (val) { S.draft = val; },
   formTitle: function (val) { S.formTitle = val; },
   formField: function (val, arg) { S.form[arg] = val; },
-  onbLicense: function (val) { S.onbLicense = val; }
+  onbLicense: function (val) { S.onbLicense = val; },
+  metricEdit: function (val, arg) { S.draftEdits[arg] = val; }
 };
 
 /* ── 19-2. 통화 ─────────────────────────────────────────────────
@@ -3462,6 +3894,7 @@ app.addEventListener('input', function (e) {
 /* Esc는 포커스 위치와 무관하게 닫히도록 document에 답니다 */
 document.addEventListener('keydown', function (e) {
   if (e.key !== 'Escape') return;
+  if (S.viewerId) { ACTIONS.closeViewer(); render(); return; }
   if (S.sheet) { S.sheet = ''; render(); return; }
   if (S.searchOpen) { ACTIONS.closeSearch(); render(); }
 });
@@ -3534,7 +3967,7 @@ else mq.addListener(onMq);
 
 /* ── 22. 해시 라우팅 ───────────────────────────────────────────── */
 
-var PAGES = ['login','onboard','admin','rooms','room','search','notis','me'];
+var PAGES = ['login','onboard','admin','home','rooms','room','search','notis','me'];
 var hashLock = false;
 
 function syncHash() {
@@ -3566,6 +3999,7 @@ window.addEventListener('hashchange', function () {
 
 /* ── 23. 시작 ──────────────────────────────────────────────────── */
 
+loadEdits();
 applyHash();
 render();
 </script>
