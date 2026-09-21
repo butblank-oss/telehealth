@@ -682,7 +682,7 @@ button:focus-visible,
    버튼만 키우면 위 말풍선을 덮어써서 눌리지 않으므로 줄 자체를 넓힙니다. */
 .msg__meta { display: flex; align-items: center; gap: var(--s2); min-height: var(--tap); }
 .msg__time { font-size: var(--t5); font-weight: 500; letter-spacing: 0; color: var(--ink-3); }
-.msg__star { font-size: var(--t5); font-weight: 700; letter-spacing: 0; color: var(--warn); }
+.msg__star, .msg__del { font-size: var(--t5); font-weight: 700; letter-spacing: 0; color: var(--warn); }
 
 @media (max-width: 1009px) {
   .msg__col { max-width: 78%; }
@@ -704,7 +704,8 @@ button:focus-visible,
   flex: 1;
   min-width: 0;
   min-height: var(--tap);
-  max-height: 96px;
+  /* 여섯 줄까지 늘어납니다(22.4px × 6 + 위아래 여백 24px) */
+  max-height: 158px;
   border-radius: var(--r-md);
   background: var(--canvas);
   padding: 12px var(--s6);
@@ -1132,10 +1133,10 @@ body { overscroll-behavior: none; }
 /* 칩·탭은 디자인상 34~36px입니다. 시각 높이는 그대로 두고
    보이지 않는 히트 영역만 44px로 넓혀 터치 타깃 규칙을 지킵니다. */
 .chip, .chip-sq, .panel__tab, .state-banner__action, .tabbar__item,
-.msg__star, .msg__read { position: relative; }
+.msg__star, .msg__del, .msg__read { position: relative; }
 .composer__opts > button { min-height: var(--tap); }
 .chip::after, .chip-sq::after, .panel__tab::after, .state-banner__action::after,
-.msg__star::after, .msg__read::after {
+.msg__star::after, .msg__del::after, .msg__read::after {
   content: '';
   position: absolute;
   left: 0; right: 0; top: 50%;
@@ -1843,16 +1844,37 @@ body { overscroll-behavior: none; }
 .tabmenu { position: relative; flex: none; }
 .chip--more { padding: 0 9px; }
 .chip--more.is-open { background: var(--ink-1); color: #fff; }
-.msg__star {
+.msg__star, .msg__del {
   display: inline-flex; align-items: center; gap: 3px;
   min-height: 20px; padding: 0 2px;
   color: var(--ink-3); opacity: 0;
 }
 .msg__star.is-on { color: var(--warn); opacity: 1; }
 @media (hover: hover) {
-  .msg:hover .msg__star, .msg__star:focus-visible { opacity: 1; }
+  .msg:hover .msg__star, .msg:hover .msg__del,
+  .msg__star:focus-visible, .msg__del:focus-visible { opacity: 1; }
 }
-@media (hover: none) { .msg__star { opacity: .55; } }
+@media (hover: none) { .msg__star, .msg__del { opacity: .55; } }
+.msg__del:hover { color: var(--danger); }
+
+.bubble--gone {
+  display: inline-flex; align-items: center; gap: 5px;
+  background: var(--canvas); color: var(--ink-3);
+  font-size: var(--t4); box-shadow: none;
+}
+.msg--mine .bubble--gone { background: var(--canvas); color: var(--ink-3); }
+.note-warn {
+  margin-top: var(--s5); padding: 11px 13px;
+  border-radius: var(--r-md);
+  background: var(--warn-soft); color: var(--warn);
+  font-size: var(--t4); font-weight: 500; line-height: 1.6;
+}
+.note-warn b { font-weight: 700; }
+.note-warn .link-btn { margin-top: var(--s2); color: var(--warn); font-weight: 700; }
+
+.delpop { min-width: 232px; }
+.delpop__row { display: flex; gap: var(--s2); justify-content: flex-end; margin-top: var(--s4); }
+.delpop__row .btn { height: 34px; min-height: 34px; padding: 0 12px; font-size: var(--t4); }
 
 .msg__read { padding: 0 2px; min-height: 20px; }
 .msg__read:hover { color: var(--accent-ink); }
@@ -2222,7 +2244,8 @@ var S = {
   star: false,
   pendingFile: null,
   sent: {},
-  sheet: '', removeTarget: '', rowMenu: '', railQ: '', stars: {}, readOpen: '',
+  sheet: '', removeTarget: '', rowMenu: '', railQ: '', stars: {}, readOpen: '', delMsg: '',
+  partAsk: false, partAsked: false,
   formTitle: '',
   formOpen: true,
   form: { pname:'', age:'', sex:'' },
@@ -2243,6 +2266,7 @@ var S = {
   draftEdits: {},
   deletedFiles: {},
   lastDeleted: null,
+  deletedMsgs: {},
   draftName: null,
   draftNote: null,
   histOpen: false,
@@ -3198,6 +3222,18 @@ function msgView(m, prev) {
       + '<span class="divider-topic__line"></span></div>';
   }
 
+  var gone = S.deletedMsgs[m.key];
+  if (gone) {
+    return out + '<div class="' + cls('msg', mine && 'msg--mine') + '">'
+      + (!mine ? avatar(p.initial, p.tone, 'sm') : '')
+      + '<div class="msg__col">'
+        + '<div class="bubble bubble--gone">' + ic('trash', 14)
+          + '<span>삭제된 메시지입니다</span></div>'
+        + '<div class="msg__meta"><span class="msg__time num">' + esc(m.when) + '</span></div>'
+      + '</div>'
+    + '</div>';
+  }
+
   /* 통화 기록 같은 시스템 줄은 말풍선이 아니라 가운데 한 줄로 남깁니다 */
   if (m.system) {
     return out + '<div class="msg-system">'
@@ -3293,6 +3329,20 @@ function msgView(m, prev) {
           + (starred(m) ? ' 중요' : '') + '</button>'
         + (mine
             ? '<div class="tabmenu" data-tabmenu style="display:inline-flex">'
+              + '<button type="button" class="msg__del" data-act="askDeleteMsg"'
+                + ' data-arg="' + esc(m.key || '') + '" aria-label="이 메시지 삭제">'
+                + ic('trash', 12) + '</button>'
+              + (S.delMsg === m.key
+                  ? '<div class="tabmenu__pop readpop delpop">'
+                    + '<div class="t5" style="color:var(--ink-2);line-height:1.6">'
+                      + '이 메시지를 지웁니다. 자리는 <b>삭제된 메시지입니다</b>로 남고,'
+                      + ' 30일 뒤 영구 삭제됩니다.</div>'
+                    + '<div class="delpop__row">'
+                      + '<button type="button" class="btn btn--quiet" data-act="cancelDeleteMsg">취소</button>'
+                      + '<button type="button" class="btn btn--danger" data-act="deleteMsg">삭제</button>'
+                    + '</div>'
+                  + '</div>'
+                  : '')
               + '<button type="button" class="msg__read" data-act="toggleRead"'
                 + ' data-arg="' + esc(m.key || '') + '" aria-expanded="' + (S.readOpen === m.key) + '">'
                 + (rs.read.length ? '읽음 ' + rs.read.length
@@ -3623,23 +3673,30 @@ function roomView() {
           : '')
       + '<div class="composer__row">'
         + iconBtn('attach', '자료 첨부', ic('clip', 20), 'btn--quiet')
+        /* 소견은 짧게 안 써집니다. 세 줄째를 쓸 때 앞 문장이 안 보이면
+           다시 읽어보고 보낼 수가 없습니다. 쓰는 만큼 늘어나되
+           여섯 줄에서 멈추고 그때부터 안에서 스크롤합니다. */
         + '<textarea class="composer__input" data-k="draft" data-input="draft" data-enter="send"'
           + ' placeholder="' + (closed ? '종료된 협진입니다. 다시 열면 이어서 쓸 수 있습니다' : '의견을 입력하세요') + '"'
-          + ' aria-label="메시지 입력" rows="1">' + esc(S.draft) + '</textarea>'
+          + ' aria-label="메시지 입력" rows="' + draftRows() + '">' + esc(S.draft) + '</textarea>'
         + '<button type="button" class="' + cls('btn', 'btn--icon', canSend ? 'btn--primary' : 'btn--primary is-disabled') + '"'
           + ' data-act="send" aria-label="보내기"' + (canSend ? '' : ' aria-disabled="true"') + '>' + ic('send', 18) + '</button>'
       + '</div>'
-      + '<div class="composer__opts">'
-        + '<button type="button" class="row" style="gap:var(--s2)" data-act="toggleStar"'
-          + ' aria-pressed="' + S.star + '">'
-          + '<span class="' + cls('check', 'check--star', S.star && 'is-on') + '">' + ic('check', 12, { w:2.6 }) + '</span>'
-          + '<span class="t4' + (S.star ? '-strong' : '') + '" style="color:' + (S.star ? 'var(--warn)' : 'var(--ink-2)') + '">중요 표시</span>'
-        + '</button>'
-        + '<span class="grow"></span>'
-        + '<span class="t5" style="color:var(--ink-3);font-weight:500;letter-spacing:0">자료 보관 기한 없음</span>'
-      + '</div>'
+      /* 중요 표시 체크박스와 보관 기한 문구는 뺐습니다. 별은 말풍선마다
+         달 수 있게 됐으니 미리 정할 이유가 없고, 보관 기한은 첨부 모달에
+         이미 같은 말이 있습니다. */
     + '</div>'
   + '</main>';
+}
+
+/* 줄 수는 글에서 셉니다. 폭이 좁으면 한 줄이 접히므로 대략 34자를
+   한 줄로 봅니다 — 정확할 필요는 없고 늘어나기만 하면 됩니다. */
+function draftRows() {
+  var lines = 0;
+  String(S.draft || '').split('\n').forEach(function (ln) {
+    lines += Math.max(1, Math.ceil(Array.from(ln).length / 34));
+  });
+  return Math.min(6, Math.max(1, lines));
 }
 
 /* ── 11. 환자 정보 · 자료 패널 ─────────────────────────────────── */
@@ -4420,6 +4477,15 @@ function attachSheetBody() {
         + '좌우와 촬영 시점도 여기에 같이 적어주세요.</p>'
     + '</div>'
 
+    /* 안 적으면 받는 의사에게는 파일명만 갑니다. 막지 않고 한 번만 묻습니다. */
+    + (S.partAsk && !(a.part || '').trim()
+        ? '<div class="note-warn">'
+          + '<div><b>부위·소견이 비어 있습니다.</b> 이대로 보내면 받는 선생님께는 '
+          + esc(items[0] ? items[0].name : '파일 이름') + ' 같은 파일 이름만 보입니다.</div>'
+          + '<button type="button" class="link-btn" data-act="confirmNoPart">그래도 첨부하기</button>'
+        + '</div>'
+        : '')
+
     + '<div class="note-ok" style="margin-top:var(--s7)">'
       + '환자 정보(DICOM 헤더)는 올릴 때 자동으로 지워집니다. 자료는 만료되지 않습니다.</div>';
 }
@@ -4752,7 +4818,7 @@ var ACTIONS = {
 
   attach: function () {
     if (!S.attach) S.attach = { part:'', items:[] };
-    S.sheet = 'attach';
+    S.sheet = 'attach'; S.partAsk = false; S.partAsked = false;
   },
   pickFiles: function () {
     var el = document.getElementById('attach-input');
@@ -4894,7 +4960,9 @@ var ACTIONS = {
     }
     if (S.sheet === 'attach') {
       if (!S.attach || !S.attach.items.length) return;
+      if (!(S.attach.part || '').trim() && !S.partAsked) { S.partAsk = true; return; }
       S.pendingFile = S.attach; S.attach = null; S.sheet = '';
+      S.partAsk = false; S.partAsked = false;
       return;
     }
     if (S.sheet === 'invite') {
@@ -4957,6 +5025,22 @@ var ACTIONS = {
     S.readOpen = '';
   },
   toggleRead: function (v) { S.readOpen = S.readOpen === v ? '' : v; },
+  /* 부위·소견을 안 적으면 받는 의사에게는 knee_ap.png 같은 기계 이름만
+     갑니다. 막지는 않되 한 번 묻습니다 — 대개는 깜빡한 것이라서요. */
+  confirmNoPart: function () { S.partAsked = true; ACTIONS.submitSheet(); },
+  /* "자료 만료 없음"이 강점인 만큼 실수도 영구히 남습니다. 환자 실명을
+     잘못 적거나 다른 방에 쓴 글을 되돌릴 방법이 있어야 합니다.
+     자료와 같은 규칙입니다 — 자리만 남기고 30일 유예, 감사 로그에 기록. */
+  askDeleteMsg: function (v) { S.delMsg = v; S.readOpen = ''; },
+  cancelDeleteMsg: function () { S.delMsg = ''; },
+  deleteMsg: function () {
+    var key = S.delMsg;
+    if (!key) return;
+    S.deletedMsgs[key] = { who: S.me, when: '방금' };
+    AUDIT_ROWS.unshift(['방금', PEOPLE[S.me].name, '삭제',
+      pname(roomById(S.roomId).name, S.roomId) + ' · 대화 1건', 'Web · 협진톡', 'delete']);
+    S.delMsg = '';
+  },
   rowMenu: function (v) { S.rowMenu = S.rowMenu === v ? '' : v; },
   rowArchive: function (v) {
     if (S.archived[v]) delete S.archived[v]; else { S.archived[v] = true; delete S.trashed[v]; }
@@ -5169,8 +5253,8 @@ app.addEventListener('click', function (e) {
   var stop = e.target.closest('[data-stop]');
   var node = e.target.closest('[data-act]');
   /* 더보기 메뉴는 바깥을 누르면 닫힙니다 */
-  if ((S.tabMenu || S.callMenu || S.rowMenu || S.readOpen) && !e.target.closest('[data-tabmenu]')) {
-    S.tabMenu = false; S.callMenu = false; S.rowMenu = ''; S.readOpen = '';
+  if ((S.tabMenu || S.callMenu || S.rowMenu || S.readOpen || S.delMsg) && !e.target.closest('[data-tabmenu]')) {
+    S.tabMenu = false; S.callMenu = false; S.rowMenu = ''; S.readOpen = ''; S.delMsg = '';
     if (!node) { render(); return; }
   }
   if (!node) return;

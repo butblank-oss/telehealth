@@ -311,6 +311,61 @@ await step('읽음을 누르면 누가 읽었고 누가 아직인지 나온다',
   await p.click('#thread', { position: { x: 20, y: 20 } });
   await p.waitForTimeout(250);
 });
+await step('소견을 길게 쓰면 입력칸이 늘어난다', async () => {
+  const h1 = (await p.locator('[data-k="draft"]').boundingBox()).height;
+  await p.fill('[data-k="draft"]', '한 줄\n두 줄\n세 줄\n네 줄\n다섯 줄');
+  await p.waitForTimeout(300);
+  const h2 = (await p.locator('[data-k="draft"]').boundingBox()).height;
+  if (h2 <= h1) throw new Error(`안 늘어남 ${h1} → ${h2}`);
+  if (await p.locator('[data-k="draft"]').evaluate(el => el.scrollHeight > el.clientHeight + 1))
+    throw new Error('다섯 줄인데 스크롤이 생김');
+  /* 끝없이 늘어나면 대화가 안 보입니다 — 여섯 줄에서 멈춰야 합니다 */
+  await p.fill('[data-k="draft"]', Array.from({length:12},(_,i)=>'줄 '+i).join('\n'));
+  await p.waitForTimeout(300);
+  const h3 = (await p.locator('[data-k="draft"]').boundingBox()).height;
+  if (h3 > 170) throw new Error('안 멈춤: ' + h3);
+  await p.fill('[data-k="draft"]', '');
+  await p.waitForTimeout(250);
+});
+await step('입력 영역에서 중요 체크박스와 보관 기한 문구를 뺐다', async () => {
+  const t = await p.locator('.composer').innerText();
+  if (/중요 표시/.test(t)) throw new Error('체크박스가 남음');
+  if (/보관 기한/.test(t)) throw new Error('보관 기한 문구가 남음');
+});
+await step('보낸 메시지를 지우면 자리만 남는다', async () => {
+  const del = p.locator('#thread .msg--mine [data-act="askDeleteMsg"]');
+  if (await p.locator('#thread .msg:not(.msg--mine) [data-act="askDeleteMsg"]').count())
+    throw new Error('상대 메시지에도 삭제가 붙음');
+  await del.last().click({ force: true });
+  await p.waitForSelector('.delpop');
+  await p.click('[data-act="cancelDeleteMsg"]');
+  await p.waitForTimeout(250);
+  if (await p.locator('.bubble--gone').count()) throw new Error('취소했는데 삭제됨');
+  await del.last().click({ force: true });
+  await p.waitForSelector('.delpop');
+  await p.click('[data-act="deleteMsg"]');
+  await p.waitForTimeout(350);
+  if (!/삭제된 메시지입니다/.test(await p.locator('.bubble--gone').innerText()))
+    throw new Error('자리가 안 남음');
+  const row = await p.evaluate(() => AUDIT_ROWS[0]);
+  if (row[2] !== '삭제' || !/대화/.test(row[3])) throw new Error('감사 로그=' + row);
+});
+await step('부위·소견이 비면 한 번 묻고, 그래도 보낼 수 있다', async () => {
+  await p.click('[data-act="attach"]');
+  await p.waitForSelector('#attach-input');
+  await p.setInputFiles('#attach-input', ['fixtures/knee_ap.png']);
+  await p.waitForSelector('.up-item');
+  await p.click('[data-act="submitSheet"]');
+  await p.waitForTimeout(350);
+  if (!(await p.locator('.modal').count())) throw new Error('그냥 첨부돼 버림');
+  const w = await p.locator('.note-warn').innerText();
+  if (!/knee_ap\.png/.test(w)) throw new Error('무엇만 보이는지 안 알려줌: ' + w);
+  await p.click('[data-act="confirmNoPart"]');
+  await p.waitForTimeout(350);
+  if (!(await p.locator('.attach-pending').count())) throw new Error('그래도 첨부가 안 됨');
+  await p.click('[data-act="clearFile"]');
+  await p.waitForTimeout(250);
+});
 await step('헤더에 대화 기간이 있다', async () => {
   const t = await p.locator('.room-header__title').innerText();
   if (!/3월 11일 ~ 3월 14일/.test(t)) throw new Error('기간 없음: ' + t);
