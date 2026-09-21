@@ -5182,7 +5182,20 @@ function syncAttrs(oldEl, newEl, isLive) {
 }
 
 function morph(oldNode, newNode, keep) {
-  if (oldNode === keep) { syncAttrs(oldNode, newNode, true); return; }
+  if (oldNode === keep) {
+    syncAttrs(oldNode, newNode, true);
+    /* 살아 있는 입력칸의 값은 사용자가 쥐고 있으므로 덮어쓰지 않습니다.
+       다만 "비워야 할 때"는 예외입니다 — 보내고 나서도 쓴 글이 그대로
+       남아 있으면 같은 말을 두 번 보내게 됩니다. 조합 중이 아닐 때만,
+       그리고 비우는 방향으로만 맞춥니다. */
+    if (!composing) {
+      var want = oldNode.tagName === 'TEXTAREA'
+        ? newNode.textContent
+        : (newNode.getAttribute('value') || '');
+      if (want === '' && oldNode.value !== '') oldNode.value = '';
+    }
+    return;
+  }
   if (oldNode.nodeType !== newNode.nodeType || oldNode.nodeName !== newNode.nodeName) {
     oldNode.replaceWith(newNode); return;
   }

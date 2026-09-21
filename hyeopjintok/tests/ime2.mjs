@@ -79,6 +79,26 @@ console.log('⑤ 새 협진 요청 제목');
 await check('제목이 깨지지 않는다', '[data-k="formTitle"]', '수술 전 사진');
 await check('환자 이름 칸도', '[data-k="f_pname"]', '');
 
+// ⑥ 보내고 나면 칸이 비어야 한다 — 조합 보호가 "비우기"까지 막으면
+//    같은 말을 두 번 보내게 된다
+await p.goto(F + '#/room/p1');
+await p.reload();
+await p.waitForSelector('[data-k="draft"]');
+await p.waitForTimeout(400);
+console.log('⑥ 보낸 뒤 입력칸');
+await type('[data-k="draft"]', '재활 강도');
+await p.waitForTimeout(200);
+await p.keyboard.press('Enter');
+await p.waitForTimeout(400);
+await check('엔터로 보내면 칸이 비워진다', '[data-k="draft"]', '');
+const sent = await p.locator('#thread .msg').last().innerText();
+console.log(`  ${/재활 강도/.test(sent) ? '✓' : '✗'} 보낸 글이 대화에 남는다`);
+if (!/재활 강도/.test(sent)) fail++;
+await type('[data-k="draft"]', '두 번째');
+await p.click('[data-act="send"]');
+await p.waitForTimeout(400);
+await check('보내기 버튼으로도 비워진다', '[data-k="draft"]', '');
+
 await b.close();
 console.log(fail ? `\n=== 실패 ${fail}건 ===` : '\n=== 전부 통과 ===');
 process.exit(fail?1:0);
