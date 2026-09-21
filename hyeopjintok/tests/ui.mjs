@@ -24,10 +24,10 @@ await step('선택된 행·활성 탭·주 버튼은 여전히 파랑', async ()
 });
 
 console.log('\n② 상태 탭 3개 + 더보기');
-await step('줄에는 전체·진행 중·안 읽음만', async () => {
+await step('줄에는 전체·안 읽음만', async () => {
   const chips = await p.locator('.rail__tabs .chip:not(.chip--more)').allInnerTexts();
-  if (chips.length !== 3) throw new Error('chips=' + JSON.stringify(chips));
-  if (!chips[0].startsWith('전체')) throw new Error(chips[0]);
+  if (chips.length !== 2) throw new Error('chips=' + JSON.stringify(chips));
+  if (!chips[0].startsWith('전체') || !chips[1].startsWith('안 읽음')) throw new Error(JSON.stringify(chips));
 });
 await step('더보기를 열면 종료·보관함이 나온다', async () => {
   await p.click('[data-act="toggleTabMenu"]');
@@ -42,7 +42,7 @@ await step('고르면 그 탭이 줄에 남는다', async () => {
   await p.waitForTimeout(250);
   if (await p.locator('.tabmenu__pop').count()) throw new Error('메뉴가 안 닫힘');
   const chips = await p.locator('.rail__tabs .chip:not(.chip--more)').allInnerTexts();
-  if (chips.length !== 4 || !chips[3].startsWith('종료')) throw new Error('chips=' + JSON.stringify(chips));
+  if (chips.length !== 3 || !chips[2].startsWith('종료')) throw new Error('chips=' + JSON.stringify(chips));
   const active = await p.locator('.rail__tabs .chip.is-active').innerText();
   if (!active.startsWith('종료')) throw new Error('active=' + active);
 });
@@ -75,26 +75,26 @@ await step('문의 1건 배지는 사라지고 2건부터만 보인다', async (
   if (texts.some(t => /문의 1/.test(t))) throw new Error('문의 1이 남아 있음');
   if (!texts.some(t => /문의 2/.test(t))) throw new Error('문의 2가 안 보임');
 });
-await step('내 차례인 방에 배지가 붙는다', async () => {
-  const texts = await p.locator('.room-row').allInnerTexts();
-  if (!texts.some(t => /내 차례/.test(t))) throw new Error('내 차례 없음');
-  // 안 읽음이 있으면 내 차례와 겹치지 않는다
-  const both = texts.filter(t => /내 차례/.test(t) && /\d+건 안 읽음/.test(t));
-  if (both.length) throw new Error('배지가 겹침');
-});
-await step('홈이 내 차례로 꼽은 방은 목록에도 표시가 있다', async () => {
+await step('"내 차례"는 어디에도 없다', async () => {
+  if ((await p.locator('.rail').innerText()).includes('내 차례')) throw new Error('목록에 남아 있음');
   await p.click('.navrail [data-arg="home"]');
   await p.waitForSelector('.home');
-  const names = await p.locator('.home .result-row .t3-strong').allInnerTexts();
-  if (!names.length) throw new Error('홈에 내 차례가 없음');
+  if ((await p.locator('.home').innerText()).includes('내 차례')) throw new Error('홈에 남아 있음');
   await p.click('.navrail [data-arg="rooms"]');
   await p.waitForTimeout(250);
-  /* 안 읽음이 있으면 그게 더 강한 신호라 내 차례 대신 미읽음 배지가 붙습니다 */
-  for (const n of names) {
-    const row = p.locator('.room-row', { hasText: n }).first();
-    const t = await row.innerText();
-    if (!/내 차례/.test(t) && !/건 안 읽음/.test(t)) throw new Error(`${n}: 표시 없음 — ${t}`);
-  }
+});
+await step('목록 검색칸은 그 자리에서 목록만 거른다', async () => {
+  await p.fill('[data-k="railq"]', '발목');
+  await p.waitForTimeout(300);
+  if (await p.evaluate(() => S.page) !== 'room') throw new Error('화면이 바뀜');
+  const names = await p.locator('.rail .room-row__name').allInnerTexts();
+  if (names.join(',') !== '이*연') throw new Error('걸러진 결과=' + names);
+  await p.fill('[data-k="railq"]', 'zzz없음');
+  await p.waitForTimeout(300);
+  if (!/찾는 환자가 없습니다/.test(await p.locator('.rail').innerText())) throw new Error('빈 상태 없음');
+  await p.click('[data-act="clearRailQ"]');
+  await p.waitForTimeout(300);
+  if (await p.locator('.rail .room-row').count() !== 5) throw new Error('지워도 안 돌아옴');
 });
 await p.screenshot({path:'shots/d2-list.png'});
 

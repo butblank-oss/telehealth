@@ -125,18 +125,17 @@ await step('홈이 실제 데이터로 채워진다', async () => {
   await p.click('.navrail [data-arg="home"]');
   await p.waitForSelector('.home');
   const t = await p.locator('.home').innerText();
-  for (const k of ['진행 중 협진','내 차례','안 읽음','24시간 넘게 답 없음',
-                   '내가 확인할 협진']) {
+  for (const k of ['진행 중 협진','안 읽음','하루 넘게 멈춤','최근 협진']) {
     if (!t.includes(k)) throw new Error('빠진 항목: ' + k);
   }
   /* 홈에서 뺀 것들 — 다시 기어 들어오면 잡습니다 */
-  for (const k of ['눈여겨볼 계측값','최근 올라온 자료']) {
+  for (const k of ['눈여겨볼 계측값','최근 올라온 자료','내 차례']) {
     if (t.includes(k)) throw new Error('홈에서 빼기로 한 항목: ' + k);
   }
   const cards = await p.locator('.home .stat-card__value').allInnerTexts();
   if (cards.some(c => /NaN|undefined/.test(c))) throw new Error('지표 계산 오류: ' + cards);
   const clickable = await p.locator('.home .stat-card--link').count();
-  if (clickable !== 4) throw new Error('지표를 누를 수 없음: ' + clickable);
+  if (clickable !== 3) throw new Error('지표를 누를 수 없음: ' + clickable);
 });
 await p.screenshot({path:'shots/v5-home.png'});
 await step('홈에서 방을 누르면 그 방이 열린다', async () => {

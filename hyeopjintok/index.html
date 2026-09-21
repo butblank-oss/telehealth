@@ -1620,6 +1620,7 @@ body { overscroll-behavior: none; }
 
 /* 목록 열 상단 — 이제 제목과 새 협진만 */
 .searchbox--btn { width: 100%; color: var(--ink-3); font-size: var(--t4); font-weight: 500; }
+.searchbox__clear { width: 28px; height: 28px; min-height: 28px; flex: none; color: var(--ink-3); }
 .searchbox--btn:hover { background: var(--canvas-2); }
 
 /* 방 헤더 액션 묶음 */
@@ -2195,7 +2196,7 @@ var S = {
   star: false,
   pendingFile: null,
   sent: {},
-  sheet: '', removeTarget: '', rowMenu: '',
+  sheet: '', removeTarget: '', rowMenu: '', railQ: '',
   formTitle: '',
   formOpen: true,
   form: { pname:'', age:'', sex:'' },
@@ -2498,16 +2499,6 @@ function memberKeys() {
   Object.keys(S.joined).forEach(function (k) { if (keys.indexOf(k) < 0) keys.push(k); });
   return keys.filter(function (k) { return !S.removed[k]; });
 }
-/* 마지막 말이 내가 아니면 내 차례입니다. 홈과 목록이 같은 기준을 씁니다. */
-function needsReply(r) {
-  if (S.closed[r.id] || !live(r)) return false;
-  var last = null;
-  r.threads.forEach(function (t) {
-    var ms = threadMsgs(r.id, t.id);
-    if (ms.length) last = ms[ms.length - 1];
-  });
-  return !!last && last.who !== S.me && !last.system;
-}
 
 function live(r) {
   return !S.archived[r.id] && !S.trashed[r.id];
@@ -2522,8 +2513,21 @@ function tabCounts() {
     archive: list.filter(function (r) { return S.archived[r.id] || S.trashed[r.id]; }).length
   };
 }
+/* 목록 위 검색칸은 이 목록만 거릅니다. 목록 위에 검색칸이 있으면
+   누구나 그 목록이 걸러질 거라고 읽기 때문입니다.
+   환자·대화·자료를 한꺼번에 찾는 전역 검색은 왼쪽 레일에 따로 있습니다.
+   가린 이름으로도 찾을 수 있어야 합니다 — 화면에 그렇게 보이니까요. */
+function railFilter(list) {
+  var q = S.railQ.trim().toLowerCase();
+  if (!q) return list;
+  return list.filter(function (r) {
+    var hay = [r.name, maskName(r.name), r.summary].concat(r.chips || []).join(' ');
+    return hay.toLowerCase().indexOf(q) >= 0;
+  });
+}
+
 function shownRooms() {
-  var list = pool().slice().sort(byRecent);
+  var list = railFilter(pool().slice().sort(byRecent));
   if (S.tab === 'unread') return list.filter(function (r) { return r.unread && live(r) && !S.closed[r.id]; });
   if (S.tab === 'closed') return list.filter(function (r) { return S.closed[r.id] && live(r); });
   if (S.tab === 'archive') return list.filter(function (r) { return S.archived[r.id] || S.trashed[r.id]; });
@@ -2891,7 +2895,7 @@ function adminView() {
 /* ── 9. 레일 / 환자 목록 ───────────────────────────────────────── */
 
 function roomRow(r, active) {
-  /* 훑을 때 필요한 건 누구 · 뭐가 문제 · 내 차례인가 셋입니다.
+  /* 훑을 때 필요한 건 누구 · 뭐가 문제 · 안 읽은 게 있나 셋입니다.
      배지는 4번째 줄을 차지하지 않고 요약 줄 오른쪽에 붙습니다. */
   var marks = [];
   if (S.trashed[r.id]) marks.push('<span class="badge badge--danger">삭제 예정</span>');
@@ -2902,7 +2906,7 @@ function roomRow(r, active) {
 
   var flag = r.unread && live(r)
     ? '<span class="badge badge--count">' + r.unread + '<span class="sr-only">건 안 읽음</span></span>'
-    : (needsReply(r) ? '<span class="badge badge--warn">내 차례</span>' : '');
+    : '';
 
   /* 정리는 목록을 훑으면서 연달아 하는 일입니다. 한 건 정리하려고
      방에 들어갔다 나오게 만들면 아무도 정리하지 않습니다.
@@ -2949,7 +2953,10 @@ function roomRow(r, active) {
    매일 쓰는 건 앞 세 개입니다. 다섯 개를 한 줄에 넣으려다 레일 폭이
    424px까지 밀려났었습니다 — 목록이 요구한 폭이 아니라 탭이 요구한 폭이었죠.
    종료·보관함은 더보기 안으로 넣고, 그 탭이 켜져 있을 때만 줄에 남깁니다. */
-var PRIMARY_TABS = ['all', 'open', 'unread'];
+/* "전체"와 "진행 중"은 종료한 협진이 없으면 늘 같은 숫자였습니다.
+   종료는 드문 일이라 대부분의 날에 탭 하나가 아무 일도 하지 않았습니다.
+   진행 중을 내리고 종료는 더보기 안에 둡니다. */
+var PRIMARY_TABS = ['all', 'unread'];
 var TAB_LABELS = { all:'전체', open:'진행 중', unread:'안 읽음', closed:'종료', archive:'보관함' };
 
 function tabChip(key, counts) {
@@ -2985,9 +2992,24 @@ function stateTabs() {
         : '');
 }
 
+/* 치는 대로 목록이 걸러집니다. 글자가 있으면 지우는 버튼이 함께 뜹니다. */
+function railSearchBox() {
+  var q = S.railQ;
+  return '<div class="searchbox">' + ic('search', 18)
+    + '<input class="grow" type="search" data-k="railq" data-input="railQ" value="' + esc(q) + '"'
+      + ' placeholder="이름 · 요약으로 찾기" aria-label="협진 목록에서 찾기">'
+    + (q ? iconBtn('clearRailQ', '검색어 지우기', ic('x', 16), 'btn--quiet searchbox__clear') : '')
+  + '</div>';
+}
+
 function roomListBody() {
   var list = shownRooms();
   if (!list.length) {
+    if (S.railQ.trim()) {
+      return '<div class="empty-state">'
+        + '<div class="empty-state__title">찾는 환자가 없습니다</div>'
+        + '<div class="empty-state__body">대화 내용과 자료까지 찾으려면 왼쪽 검색을 쓰세요</div></div>';
+    }
     var titles = { archive:'보관한 대화가 없습니다', closed:'종료한 협진이 없습니다',
       unread:'안 읽은 대화가 없습니다', all:'대화가 없습니다', open:'진행 중인 협진이 없습니다' };
     var bodies = { archive:'보관하면 목록에서 숨기고 여기에 모입니다', closed:'종료해도 기록과 자료는 남습니다',
@@ -3049,12 +3071,7 @@ function railView() {
     + '<div class="rail__tools">'
       + '<button type="button" class="btn btn--primary rail__new" data-act="openNew">'
         + ic('plus', 18) + '새 협진 요청</button>'
-      /* 여기서 타이핑해도 목록이 걸러지지 않아 헷갈렸습니다.
-         검색은 검색 화면이 하는 일이므로 그리로 보내는 버튼으로 바꿉니다. */
-      + '<button type="button" class="searchbox searchbox--btn" data-act="go" data-arg="search">'
-        + ic('search', 18)
-        + '<span class="grow truncate">환자 · 대화 · 자료 검색</span>'
-      + '</button>'
+      + railSearchBox()
     + '</div>'
     + '<div class="rail__tabs" role="group" aria-label="상태 필터">' + stateTabs() + '</div>'
     + '<div class="scroll" data-sk="rail" style="padding:0 var(--s4) var(--s4)">' + roomListBody() + '</div>'
@@ -3419,10 +3436,9 @@ function roomView() {
     thread = msgs.map(function (m, i) { return msgView(m, msgs[i - 1]); }).join('');
     /* 협진이 끝나면 그 시점까지의 대화를 정리해 맨 끝에 남깁니다 */
     if (closed && !S.searchOpen) thread += summaryCard(room);
-    /* 진행 중이면 같은 자리에 종료 버튼을 둡니다 — 누르면 여기에 요약이 남습니다 */
-    /* 상대 답을 기다리는 중에는 종료 버튼이 부담스럽습니다.
-       내 차례가 아닐 때, 즉 대화가 한 바퀴 돌았을 때만 띄웁니다. */
-    else if (!closed && !archived && !trashed && !S.searchOpen && msgs.length >= 2 && !needsReply(room)) {
+    /* 진행 중이면 같은 자리에 종료 버튼을 둡니다 — 누르면 여기에 요약이 남습니다.
+       대화가 한 바퀴는 돌아야 정리할 것이 생기므로 2건부터 띄웁니다. */
+    else if (!closed && !archived && !trashed && !S.searchOpen && msgs.length >= 2) {
       thread += '<div class="close-cta">'
         + '<span class="close-cta__line"></span>'
         + '<button type="button" class="btn btn--quiet close-cta__btn" data-act="askClose">'
@@ -3797,22 +3813,23 @@ function panelView() {
    홈에서 뺐습니다 — 방에 들어가면 어차피 다시 보이고, 홈에서는 판단할
    근거가 모자란 숫자라 오히려 오해를 만듭니다.
 
-   문구는 한쪽 역할을 전제하지 않습니다. 같은 계정이 어떤 방에서는 묻고
-   어떤 방에서는 답하므로, "내 답변 대기"가 아니라 "내 차례"라고 씁니다. */
+   "내 차례"는 뺐습니다. 마지막 말이 누구였냐로 차례를 정하면 인사말
+   하나에도 차례가 넘어와, 답할 것이 없는 방이 며칠씩 빨갛게 남습니다. */
 
+/* 누가 답할 차례인지는 따지지 않습니다. 대화가 하루 넘게 멈춰 있으면
+   그것만으로 들여다볼 이유가 됩니다. */
 function isStale(r) {
-  /* 데모에는 실제 타임스탬프가 없어 목록 표기로 가늠합니다 */
-  return /어제|일$|주$/.test(r.when || '');
+  return (r.ago || 0) >= 1440;
 }
 
 function homeStats() {
-  var list = pool().filter(live).filter(function (r) { return !S.closed[r.id]; });
-  var waiting = list.filter(needsReply);
+  var list = pool().filter(live).filter(function (r) { return !S.closed[r.id]; })
+    .slice().sort(byRecent);
   return {
     open: list.length,
-    waiting: waiting,
+    recent: list.slice(0, 6),
     unread: list.filter(function (r) { return r.unread; }).length,
-    stale: waiting.filter(isStale).length
+    stale: list.filter(isStale).length
   };
 }
 
@@ -3822,10 +3839,9 @@ function homeScreen() {
 
   /* 지표는 눌러서 그 목록으로 갈 수 있어야 지표입니다. */
   var cards = [
-    { label:'진행 중 협진', n:x.open, unit:'건', act:'homeGo', arg:'open' },
-    { label:'내 차례', n:x.waiting.length, unit:'건', act:'homeGo', arg:'open', tone:x.waiting.length ? 'warn' : '' },
+    { label:'진행 중 협진', n:x.open, unit:'건', act:'homeGo', arg:'all' },
     { label:'안 읽음', n:x.unread, unit:'건', act:'homeGo', arg:'unread', tone:x.unread ? 'danger' : '' },
-    { label:'24시간 넘게 답 없음', n:x.stale, unit:'건', act:'homeGo', arg:'open', tone:x.stale ? 'danger' : '' }
+    { label:'하루 넘게 멈춤', n:x.stale, unit:'건', act:'homeGo', arg:'all', tone:x.stale ? 'warn' : '' }
   ].map(function (c) {
     var fg = c.tone === 'warn' ? 'var(--warn)' : (c.tone === 'danger' ? 'var(--danger)' : 'var(--ink-1)');
     return '<button type="button" class="stat-card stat-card--link" data-act="' + c.act + '" data-arg="' + c.arg + '">'
@@ -3835,8 +3851,8 @@ function homeScreen() {
     + '</button>';
   }).join('');
 
-  var waiting = x.waiting.length
-    ? x.waiting.map(function (r) {
+  var waiting = x.recent.length
+    ? x.recent.map(function (r) {
         return '<button type="button" class="result-row" data-act="open" data-arg="' + esc(r.id) + '">'
           + avatar(r.initial, r.tone)
           + '<span class="grow truncate" style="display:block">'
@@ -3844,14 +3860,15 @@ function homeScreen() {
             + '<span class="room-row__summary truncate" style="display:block;margin:0">' + esc(r.summary) + '</span>'
             + '<span class="t4 truncate" style="display:block;color:var(--ink-3)">' + esc(r.last) + '</span>'
           + '</span>'
-          + (isStale(r) ? '<span class="badge badge--danger">' + esc(r.when) + '부터</span>'
-                        : '<span class="badge badge--warn">내 차례</span>')
+          + (r.unread ? '<span class="badge badge--count">' + r.unread
+                        + '<span class="sr-only">건 안 읽음</span></span>' : '')
+          + (isStale(r) ? '<span class="badge badge--warn">' + esc(r.when) + '부터 멈춤</span>' : '')
           + ic('next', 18)
         + '</button>';
       }).join('')
     : '<div class="home-empty">' + ic('checkc', 22)
-      + '<div><strong>지금 내 차례인 협진이 없습니다</strong>'
-      + '<span>상대 선생님이 글을 남기면 여기에 가장 먼저 뜹니다</span></div></div>';
+      + '<div><strong>진행 중인 협진이 없습니다</strong>'
+      + '<span>새 협진 요청으로 시작하세요</span></div></div>';
 
   return '<div class="screen">'
     + '<div class="screen__head">'
@@ -3867,7 +3884,7 @@ function homeScreen() {
       + '<div class="stat-grid">' + cards + '</div>'
       + '<section style="margin-top:var(--s9)">'
         + '<div class="row" style="justify-content:space-between;margin:0 0 var(--s4)">'
-          + '<h2 class="sec-label" style="margin:0">내가 확인할 협진</h2>'
+          + '<h2 class="sec-label" style="margin:0">최근 협진</h2>'
           + '<button type="button" class="link-btn" data-act="go" data-arg="rooms">전체 보기</button>'
         + '</div>'
         + waiting
@@ -4687,7 +4704,7 @@ var ACTIONS = {
     threadToBottom = true;
   },
 
-  homeGo: function (v) { S.tab = v; S.page = isMobile() ? 'rooms' : 'room'; },
+  homeGo: function (v) { S.tab = v === 'open' ? 'all' : v; S.page = isMobile() ? 'rooms' : 'room'; },
   openNew: function () {
     S.sheet = 'new'; S.formTitle = ''; S.formOpen = true; S.showAllDocs = false;
     S.form = { pname:'', age:'', sex:'' };
@@ -4823,6 +4840,7 @@ var ACTIONS = {
   askRemove: function (v) { S.removeTarget = v; S.sheet = 'drop'; },
   removeMember: function (v) { S.removed[v] = true; },
   /* 목록에서 바로 정리합니다. 방을 옮기지 않고 그 자리에서 끝냅니다. */
+  clearRailQ: function () { S.railQ = ''; },
   rowMenu: function (v) { S.rowMenu = S.rowMenu === v ? '' : v; },
   rowArchive: function (v) {
     if (S.archived[v]) delete S.archived[v]; else { S.archived[v] = true; delete S.trashed[v]; }
@@ -4866,6 +4884,7 @@ var INPUTS = {
   query: function (val) { S.query = val; },
   draft: function (val) { S.draft = val; },
   formTitle: function (val) { S.formTitle = val; },
+  railQ: function (val) { S.railQ = val; },
   formField: function (val, arg) { S.form[arg] = val; },
   onbLicense: function (val) { S.onbLicense = val; },
   metricEdit: function (val, arg) { S.draftEdits[arg] = val; },

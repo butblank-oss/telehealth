@@ -15,7 +15,7 @@ const step = async (name, fn) => {
 await p.goto('file:///home/user/telehealth/hyeopjintok/index.html#/room/p1');
 await p.waitForTimeout(300);
 
-await step('기본 폭에서 주요 탭 3개 + 더보기가 한 줄', async () => {
+await step('기본 폭에서 주요 탭 2개 + 더보기가 한 줄', async () => {
   const r = await p.evaluate(() => {
     const el = document.querySelector('.rail__tabs');
     return { scrollW: el.scrollWidth, clientW: el.clientWidth, wrap: getComputedStyle(el).flexWrap,
@@ -23,7 +23,7 @@ await step('기본 폭에서 주요 탭 3개 + 더보기가 한 줄', async () =
              more: el.querySelectorAll('.chip--more').length };
   });
   if (r.wrap !== 'nowrap') throw new Error('wrap=' + r.wrap);
-  if (r.chips !== 3 || r.more !== 1) throw new Error(JSON.stringify(r));
+  if (r.chips !== 2 || r.more !== 1) throw new Error(JSON.stringify(r));
   if (r.scrollW > r.clientW + 1) throw new Error(`탭이 넘침 scrollW=${r.scrollW} clientW=${r.clientW}`);
 });
 await step('레일 기본 폭 = 320px', async () => {
@@ -50,7 +50,7 @@ await step('드래그로 넓히면 실제 rail 폭이 늘어남', async () => {
 });
 await step('넓힌 상태에서도 탭이 다 보임 + 본문 폭이 굶지 않음', async () => {
   const n = await p.locator('.rail__tabs .chip').count();
-  if (n !== 4) throw new Error('chips=' + n);
+  if (n !== 3) throw new Error('chips=' + n);
   const w = await p.locator('.main').evaluate(el => el.getBoundingClientRect().width);
   if (w < 440) throw new Error('main width=' + w);
 });
@@ -99,10 +99,10 @@ const m = await b.newContext({ viewport:{width:390,height:844}, isMobile:true, h
 const mp = await m.newPage();
 await mp.goto('file:///home/user/telehealth/hyeopjintok/index.html#/rooms');
 await mp.waitForTimeout(300);
-await step('모바일: 리사이저 미존재, 탭 5개 정상', async () => {
+await step('모바일: 리사이저 미존재, 탭 정상', async () => {
   if (await mp.locator('[data-resizer="rail"]').count()) throw new Error('모바일에 리사이저가 있음');
   const n = await mp.locator('.rail__tabs .chip').count();
-  if (n !== 4) throw new Error('chips=' + n);
+  if (n !== 3) throw new Error('chips=' + n);
 });
 await mp.screenshot({ path: 'shots/m-rail-tabs2.png' });
 
