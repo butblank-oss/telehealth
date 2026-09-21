@@ -93,7 +93,7 @@ await shot('05-modal-new');
 await step('create room', async () => {
   await page.fill('[data-k="f_pname"]', '한지은');
   await page.fill('[data-k="f_age"]', '38');
-  await page.fill('[data-k="f_sex"]', '여성');
+  await page.click('[data-act="formSex"][data-arg="여성"]');
   await page.fill('[data-k="formTitle"]', '어깨 회전근개 소견 부탁드립니다');
   await page.click('[data-act="submitSheet"]');
   await page.waitForTimeout(200);

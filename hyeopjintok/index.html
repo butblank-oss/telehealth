@@ -352,6 +352,23 @@ button:focus-visible,
    7. Chips / Badges
    -------------------------------------------------------------------------- */
 
+/* 둘 중 하나를 고르는 자리. 입력칸과 같은 높이로 맞춰 한 줄에 나란히 섭니다. */
+.seg-group { display: flex; gap: var(--s2); }
+.seg {
+  flex: 1;
+  min-width: 0;
+  min-height: var(--tap);
+  padding: 0 var(--s3);
+  border-radius: var(--r-md);
+  font-size: var(--t4);
+  font-weight: 600;
+  background: var(--canvas);
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+.seg:hover { background: var(--canvas-2); }
+.seg.is-on { background: var(--accent); color: #fff; }
+
 .chip {
   flex: none;
   display: inline-flex;
@@ -4011,9 +4028,13 @@ function pickRows(exclude) {
    나이·성별·부위를 따로 받아 봤자 결국 한 줄로 이어 붙었으므로 한 칸으로 합쳤고,
    협진 판단에 쓰이지 않던 거주 도시는 뺐습니다. */
 function newSheetBody() {
-  var fields = [['환자 이름','pname','예: 박정우','text'],
-                ['나이','age','예: 45','numeric'],
-                ['성별','sex','예: 여성','text']];
+  /* 성별은 둘 중 하나라 글로 받을 이유가 없습니다. 눌러서 고르고,
+     한 번 더 누르면 지워집니다 — 선택 항목이라 비워둘 수 있어야 합니다. */
+  var sexPick = ['남성', '여성'].map(function (v) {
+    var on = S.form.sex === v;
+    return '<button type="button" class="' + cls('seg', on && 'is-on') + '"'
+      + ' data-act="formSex" data-arg="' + v + '" aria-pressed="' + on + '">' + v + '</button>';
+  }).join('');
 
   return '<div class="row" style="justify-content:space-between;margin:0 0 var(--s3)">'
       + '<span class="t5" style="color:var(--ink-3)">환자 · 선택</span>'
@@ -4021,11 +4042,15 @@ function newSheetBody() {
         + (S.formOpen ? '접기' : '펼치기') + '</button>'
     + '</div>'
     + (S.formOpen
-        ? '<div class="field-grid">' + fields.map(function (f) {
-            return '<div>' + labeled('f_' + f[1], f[0], false,
-              field({ k:'f_' + f[1], action:'formField', arg:f[1], value:S.form[f[1]], ph:f[2],
-                      inputmode:f[3] })) + '</div>';
-          }).join('') + '</div>'
+        ? '<div class="field-grid">'
+            + '<div>' + labeled('f_pname', '환자 이름', false,
+                field({ k:'f_pname', action:'formField', arg:'pname', value:S.form.pname, ph:'예: 박정우' })) + '</div>'
+            + '<div>' + labeled('f_age', '나이', false,
+                field({ k:'f_age', action:'formField', arg:'age', value:S.form.age, ph:'예: 45',
+                        inputmode:'numeric' })) + '</div>'
+            + '<div><span class="field-label">성별</span>'
+              + '<div class="seg-group" role="group" aria-label="성별">' + sexPick + '</div></div>'
+          + '</div>'
           + '<p class="field-hint">비워둬도 방은 만들어집니다. 적으면 첫 메시지 맨 위에 함께 실립니다.</p>'
         : '')
     + '<div style="margin-top:var(--s8)"></div>'
@@ -4663,6 +4688,8 @@ var ACTIONS = {
   openMenu: function () { S.sheet = 'menu'; },
   closeSheet: function () { S.sheet = ''; },
   toggleForm: function () { S.formOpen = !S.formOpen; },
+  /* 한 번 더 누르면 지워집니다 — 성별은 적어도 되고 안 적어도 됩니다 */
+  formSex: function (v) { S.form.sex = S.form.sex === v ? '' : v; },
   showAllDocs: function () { S.showAllDocs = true; },
   pick: function (v) { S.picks[v] = !S.picks[v]; },
   fileFilter: function (v) { S.fileFilter = v; },

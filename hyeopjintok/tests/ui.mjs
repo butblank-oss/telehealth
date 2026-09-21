@@ -163,8 +163,17 @@ await step('새 협진 요청은 환자 → 문의 → 의사 순서다', async 
   await p.waitForSelector('.modal');
   const order = await p.locator('.modal [data-k]').evaluateAll(
     ns => ns.map(n => n.dataset.k));
-  const want = ['f_pname', 'f_age', 'f_sex', 'formTitle'];
-  if (order.slice(0, 4).join(',') !== want.join(',')) throw new Error('순서=' + order);
+  const want = ['f_pname', 'f_age', 'formTitle'];
+  if (order.slice(0, 3).join(',') !== want.join(',')) throw new Error('순서=' + order);
+  /* 성별은 글로 받지 않고 눌러서 고릅니다. 한 번 더 누르면 지워져야 합니다. */
+  const sexBtns = await p.locator('.modal [data-act="formSex"]').allInnerTexts();
+  if (sexBtns.join(',') !== '남성,여성') throw new Error('성별 버튼=' + sexBtns);
+  await p.click('.modal [data-act="formSex"][data-arg="남성"]');
+  await p.waitForTimeout(150);
+  if (await p.evaluate(() => S.form.sex) !== '남성') throw new Error('선택 안 됨');
+  await p.click('.modal [data-act="formSex"][data-arg="남성"]');
+  await p.waitForTimeout(150);
+  if (await p.evaluate(() => S.form.sex) !== '') throw new Error('다시 눌러도 안 지워짐');
   const t = await p.locator('.modal').innerText();
   for (const gone of ['부위', '거주 도시']) {
     if (t.includes(gone)) throw new Error('지운 칸이 남음: ' + gone);
@@ -177,7 +186,7 @@ await step('물어본 문장이 첫 메시지로 전송된다', async () => {
   await p.waitForSelector('.modal');
   await p.fill('[data-k="f_pname"]', '정민석');
   await p.fill('[data-k="f_age"]', '45');
-  await p.fill('[data-k="f_sex"]', '여성');
+  await p.click('[data-act="formSex"][data-arg="여성"]');
   await p.fill('[data-k="formTitle"]', '어깨 회전근개 파열 의심되는데 소견 부탁드립니다');
   await p.click('[data-act="submitSheet"]');
   await p.waitForTimeout(400);
