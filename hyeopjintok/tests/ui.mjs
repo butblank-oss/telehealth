@@ -260,6 +260,61 @@ await step('목록에서 바로 보관·삭제할 수 있다', async () => {
   await p.click('[data-act="tab"][data-arg="all"]');
   await p.waitForTimeout(250);
 });
+await step('날짜와 주제 구분선이 서로를 밀어내지 않는다', async () => {
+  /* 앞 단계에서 의사를 빼고 보관하고 별을 달았습니다.
+     여기부터는 처음 상태에서 봐야 하므로 새로 읽습니다. */
+  await p.goto(F + '#/room/p1'); await p.reload(); await p.waitForTimeout(600);
+  const days = await p.locator('#thread .divider-day').allInnerTexts();
+  const want = await p.evaluate(() => {
+    const o = []; ['p1t1','p1t2'].forEach(k => MSGS[k].forEach(m => { if (m.day && o.indexOf(m.day) < 0) o.push(m.day); }));
+    return o;
+  });
+  if (days.join(',') !== want.join(',')) throw new Error(`날짜 ${days} ≠ 데이터 ${want}`);
+  if (!(await p.locator('#thread .divider-topic').count())) throw new Error('주제 구분선이 사라짐');
+});
+await step('누구 말이든 중요 표시를 달고 뗄 수 있다', async () => {
+  const before = await p.locator('#thread .msg__star.is-on').count();
+  const other = p.locator('#thread .msg:not(.msg--mine) [data-act="toggleMsgStar"]').first();
+  await other.click({ force: true });
+  await p.waitForTimeout(300);
+  if (await p.locator('#thread .msg__star.is-on').count() !== before + 1) throw new Error('상대 메시지에 별이 안 달림');
+  await other.click({ force: true });
+  await p.waitForTimeout(300);
+  if (await p.locator('#thread .msg__star.is-on').count() !== before) throw new Error('별이 안 떨어짐');
+});
+await step('★ 중요 칩으로 표시한 것만 모아 본다', async () => {
+  const chip = p.locator('[data-act="topic"][data-arg="star"]');
+  if (!(await chip.count())) throw new Error('중요 칩이 없음');
+  const n = +(await chip.innerText()).replace(/\D/g, '');
+  await chip.click();
+  await p.waitForTimeout(350);
+  const shown = await p.locator('#thread .msg').count();
+  if (shown !== n) throw new Error(`칩은 ${n}건인데 ${shown}건 보임`);
+  const off = await p.locator('#thread .msg__star:not(.is-on)').count();
+  if (off) throw new Error('중요가 아닌 메시지가 섞임');
+  await p.click('[data-act="topic"][data-arg="all"]');
+  await p.waitForTimeout(300);
+});
+await step('읽음을 누르면 누가 읽었고 누가 아직인지 나온다', async () => {
+  const reads = p.locator('#thread [data-act="toggleRead"]');
+  const labels = await reads.allInnerTexts();
+  if (!labels.some(t => /읽음 1/.test(t))) throw new Error('부분 읽음이 없음: ' + labels);
+  const idx = labels.findIndex(t => /읽음 1/.test(t));
+  await reads.nth(idx).click({ force: true });
+  await p.waitForSelector('.readpop');
+  const t = (await p.locator('.readpop').innerText()).replace(/\n/g, ' ');
+  if (!/읽음/.test(t) || !/아직/.test(t)) throw new Error('읽음/아직이 안 갈림: ' + t);
+  if (!/원장/.test(t)) throw new Error('이름이 없음: ' + t);
+  const bb = await p.locator('.readpop').boundingBox();
+  if (bb.x < 0 || bb.x + bb.width > 1440) throw new Error('팝업이 화면 밖');
+  await p.keyboard.press('Escape');
+  await p.click('#thread', { position: { x: 20, y: 20 } });
+  await p.waitForTimeout(250);
+});
+await step('헤더에 대화 기간이 있다', async () => {
+  const t = await p.locator('.room-header__title').innerText();
+  if (!/3월 11일 ~ 3월 14일/.test(t)) throw new Error('기간 없음: ' + t);
+});
 await step('협진이라고 부른다 — 상담이 아니라', async () => {
   const t = await p.locator('#thread .close-cta').innerText();
   if (!/협진 종료하기/.test(t)) throw new Error('버튼=' + t);

@@ -15,8 +15,18 @@ const check = async (label) => {
       if (!b.width || !b.height) return;
       const cx = b.left + b.width / 2;
       const cy = b.top + b.height / 2;
+      /* 스크롤되는 영역 안의 요소는 가장자리에 걸릴 수 있습니다.
+         그건 스크롤하면 풀리는 것이라 타깃 크기 문제가 아닙니다. */
+      let sc = el.parentElement;
+      while (sc && sc !== document.body) {
+        const st = getComputedStyle(sc);
+        if (/auto|scroll/.test(st.overflowY)) break;
+        sc = sc.parentElement;
+      }
+      const lim = sc && sc !== document.body ? sc.getBoundingClientRect() : null;
       const hits = [cy - 21, cy + 21].every(y => {
         if (y < 0 || y > innerHeight) return true;
+        if (lim && (y < lim.top || y > lim.bottom)) return true;
         const at = document.elementFromPoint(cx, y);
         return at && (at === el || el.contains(at) || at.contains(el));
       });
