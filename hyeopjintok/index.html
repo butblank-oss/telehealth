@@ -2547,6 +2547,22 @@ function field(opts) {
    안 되므로 화면에 뜨는 환자 이름은 기본으로 가운데를 가립니다.
    규칙은 하나뿐입니다 — 띄어쓰기로 나눈 각 낱말의 가운데를 가린다.
    김성호 → 김*호,  Nguyễn Văn Dũng → N****n V*n D**g */
+/* 문의 이름은 단어 중간에서 자르지 않습니다.
+   "어깨 회전근개 파열 의"처럼 끊기면 뜻이 상합니다. */
+function shortLabel(title, max) {
+  max = max || 14;
+  var t = String(title || '').trim();
+  if (Array.from(t).length <= max) return t;
+  var out = '';
+  var words = t.split(' ');
+  for (var i = 0; i < words.length; i++) {
+    if (!out) { out = words[i]; continue; }
+    if (Array.from(out + ' ' + words[i]).length > max) break;
+    out += ' ' + words[i];
+  }
+  return out || Array.from(t).slice(0, max).join('');
+}
+
 function maskWord(w) {
   var ch = Array.from(w);
   if (ch.length <= 1) return w;
@@ -2985,7 +3001,7 @@ function visibleMsgs(room) {
     threadMsgs(room.id, t.id).forEach(function (m) {
       var copy = {};
       for (var k in m) copy[k] = m[k];
-      copy.topic = t.label;
+      copy.topic = room.threads.length > 1 ? t.label : '';
       out.push(copy);
     });
   });
@@ -3013,7 +3029,7 @@ function msgView(m, prev) {
   /* 협진에서 제일 궁금한 건 "상대가 봤나"입니다. 답이 없을 때
      안 본 것과 보고 생각 중인 것을 구분할 수 있어야 합니다. */
   var readBy = mine ? readCount(m) : 0;
-  var newTopic = S.topic === 'all' && (!prev || prev.topic !== m.topic);
+  var newTopic = !!m.topic && S.topic === 'all' && (!prev || prev.topic !== m.topic);
   var out = '';
 
   if (newTopic) {
@@ -3247,6 +3263,11 @@ function topicBar(room) {
     + '</div></div>';
   }
 
+  /* 문의가 하나뿐이면 나눌 게 없으므로 바를 아예 내립니다.
+     방 목록이 '문의 1'을 숨기고 '문의 2'부터 보여주는 것과 같은 규칙입니다.
+     검색은 문의 개수와 상관없는 기능이라 위에서 먼저 처리했습니다. */
+  if (room.threads.length < 2) return '';
+
   var all = room.threads.reduce(function (n, t) { return n + threadMsgs(room.id, t.id).length; }, 0);
   var chips = [{ id:'all', label:'전체', auto:false, n:all }].concat(room.threads.map(function (t) {
     return { id:t.id, label:t.label, auto:true, n:threadMsgs(room.id, t.id).length };
@@ -3263,13 +3284,13 @@ function topicBar(room) {
   return '<div class="topic-bar">'
     + '<div class="topic-bar__row">'
       + '<div class="topic-bar__chips" role="group" aria-label="주제 필터">' + chips + '</div>'
-      + (room.threads.length > 1 && !S.autoSeen
+      + (!S.autoSeen
           ? iconBtn('dismissAutoHint', '주제 자동 분류 안내 닫기', ic('x', 16), 'btn--quiet')
           : '')
     + '</div>'
     /* 자동 주제 분류는 이 서비스의 핵심인데 '자동' 두 글자로는 알 수 없습니다.
        처음 한 번만 설명하고, 닫으면 다시 뜨지 않습니다. */
-    + (room.threads.length > 1 && !S.autoSeen
+    + (!S.autoSeen
         ? '<p class="topic-hint">' + ic('list', 14)
           + '<span>문의가 길어지면 <strong>시스템이 대화를 읽고 주제를 나눕니다.</strong> '
           + '나누는 기준은 대화 내용이고, 수동으로 문의를 나눌 필요가 없습니다.</span></p>'
@@ -3994,7 +4015,7 @@ function newSheetBody() {
     + '<div style="margin-top:var(--s8)"></div>'
     + labeled('formTitle', '무엇을 물어보시겠어요?', true,
         field({ k:'formTitle', action:'formTitle', value:S.formTitle, ph:'예: 무릎 안쪽 통증 소견 부탁드립니다', lg:true }))
-    + '<p class="field-hint">' + esc(S.formTitle.trim() ? '이 제목이 첫 대화 주제가 됩니다' : '한 줄이면 충분합니다. 나머지는 대화로 이어가세요') + '</p>'
+    + '<p class="field-hint">' + esc(S.formTitle.trim() ? '이 문장이 첫 메시지로 전송됩니다' : '한 줄이면 충분합니다. 나머지는 대화로 이어가세요') + '</p>'
     + '<div class="row" style="justify-content:space-between;margin:var(--s8) 0 var(--s3)">'
       + '<span class="t5" style="color:var(--ink-3)">초대할 의사 · '
         + DOCTORS.filter(function (d) { return S.picks[d.k]; }).length + '명 선택</span>'
@@ -4005,7 +4026,7 @@ function newSheetBody() {
         : '')
     + '<p class="field-hint" style="margin-top:var(--s5)">'
       + '방 이름은 환자 이름이 됩니다. 목록에서는 가운데 글자를 가려서 보여줍니다. '
-      + '문의 제목은 방 안의 첫 주제가 됩니다.</p>';
+      + '물어보신 내용은 방을 만들면서 첫 메시지로 전송됩니다.</p>';
 }
 
 function inviteSheetBody() {
@@ -4662,11 +4683,17 @@ var ACTIONS = {
       tone: 'steel',
       when: '방금',
       summary: about || '정보 미입력',
-      last: '방이 만들어졌습니다',
+      /* 목록 마지막 줄은 방금 물어본 그 문장입니다 */
+      last: title,
       chips: about ? about.split('·').map(function (c) { return c.trim(); }).filter(Boolean)
                    : ['환자 정보 미입력'],
-      threads: [{ id:'t1', label: title.slice(0, 12) }]
+      /* 문의는 늘 하나 있어야 합니다 — 메시지가 방ID+문의ID로 저장되기 때문입니다.
+         이름은 제목에서 뽑아 두되 문의가 하나인 동안은 화면에 쓰지 않습니다. */
+      threads: [{ id:'t1', label: shortLabel(title) }]
     }].concat(S.extraRooms);
+    /* 폼에 쓴 문장은 제목이 아니라 질문 그 자체입니다.
+       내가 보낸 첫 메시지로 남겨야 초대받은 의사가 무엇을 묻는지 압니다. */
+    S.sent[id + 't1'] = [{ who:S.me, when:'방금', body:title, unread:true }];
     openRoom(id);
     S.tab = 'all';
     S.formTitle = '';

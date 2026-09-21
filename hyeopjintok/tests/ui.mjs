@@ -172,6 +172,36 @@ await step('새 협진 요청은 환자 → 문의 → 의사 순서다', async 
   await p.keyboard.press('Escape');
   await p.waitForSelector('.modal', { state:'detached' });
 });
+await step('물어본 문장이 첫 메시지로 전송된다', async () => {
+  await p.click('[data-act="openNew"]');
+  await p.waitForSelector('.modal');
+  await p.fill('[data-k="f_pname"]', 'Đỗ Minh Quân');
+  await p.fill('[data-k="formTitle"]', '어깨 회전근개 파열 의심되는데 소견 부탁드립니다');
+  await p.click('[data-act="submitSheet"]');
+  await p.waitForTimeout(400);
+  const t = await p.locator('#thread').innerText();
+  if (!t.includes('어깨 회전근개 파열 의심되는데 소견 부탁드립니다')) throw new Error('첫 메시지 없음: ' + t);
+  /* 목록 마지막 줄도 시스템 문구가 아니라 그 질문이어야 한다 */
+  const row = await p.locator('.rail .room-row').first().innerText();
+  if (/방이 만들어졌습니다/.test(row)) throw new Error('목록에 시스템 문구가 남음');
+  if (!/어깨 회전근개 파열/.test(row)) throw new Error('목록 줄=' + row);
+});
+await step('문의가 하나면 주제 바도 구분선도 안 나온다', async () => {
+  if (await p.locator('.topic-bar').count()) throw new Error('주제 바가 보임');
+  if (await p.locator('#thread .divider-topic').count()) throw new Error('주제 구분선이 보임');
+  /* 그래도 방 안 검색은 열려야 한다 — 문의 개수와 무관한 기능이다 */
+  await p.click('[data-act="openSearch"]');
+  await p.waitForSelector('[data-k="roomq"]');
+  await p.click('[data-act="closeSearch"]');
+  await p.waitForTimeout(200);
+  /* 문의가 둘인 방에서는 바가 나온다 */
+  await p.goto(F + '#/room/p1'); await p.waitForTimeout(400);
+  if (!(await p.locator('.topic-bar .chip').count())) throw new Error('문의 2개 방에 바가 없음');
+});
+await step('문의 이름은 낱말 중간에서 안 잘린다', async () => {
+  const label = await p.evaluate(() => S.extraRooms[0].threads[0].label);
+  if (!/^어깨 회전근개 파열$/.test(label)) throw new Error('label=' + label);
+});
 await step('협진이라고 부른다 — 상담이 아니라', async () => {
   const t = await p.locator('#thread .close-cta').innerText();
   if (!/협진 종료하기/.test(t)) throw new Error('버튼=' + t);
