@@ -75,11 +75,17 @@ await step('panel toggle + files tab', async () => {
   await page.click('[data-act="panel"][data-arg="files"]');
   await page.waitForSelector('.panel .file-row');
   const n = await page.locator('.panel .file-row').count();
-  if (n !== 5) throw new Error('files=' + n);
+  /* 탭이 "자료 6"이라고 말하면 여섯 개가 다 보여야 합니다 */
+  if (n !== 6) throw new Error('files=' + n);
+  const tab = await page.locator('.panel__tab').nth(1).innerText();
+  if (tab !== '자료 ' + n) throw new Error(`탭은 ${tab}인데 목록은 ${n}개`);
   const txt = await page.locator('.panel .file-row__cap').first().innerText();
   if (!/관절간격/.test(txt)) throw new Error('caption=' + txt);
-  const digest = await page.locator('.panel .digest').count();
-  if (!digest) throw new Error('no analysis digest in panel');
+  /* 정리는 접혀 있고, 펴면 나옵니다 — 목록이 먼저입니다 */
+  if (await page.locator('.panel .digest').count()) throw new Error('정리가 펼쳐진 채로 있음');
+  await page.click('[data-act="toggleDigest"]');
+  await page.waitForSelector('.panel .digest');
+  await page.click('[data-act="toggleDigest"]');
   await page.click('[data-act="panel"][data-arg="info"]');
 });
 await shot('04-panel');

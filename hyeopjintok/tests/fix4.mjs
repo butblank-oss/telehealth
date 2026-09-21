@@ -45,6 +45,11 @@ await step('더 고르기로 이어서 추가할 수 있다', async () => {
 console.log('\n② 자료 삭제와 되돌리기');
 await step('시드 자료도 삭제할 수 있다', async () => {
   await p.click('[data-act="panel"][data-arg="files"]');
+  await p.waitForTimeout(250);
+  if (!(await p.locator('.panel .digest').count())) {
+    await p.click('[data-act="toggleDigest"]');
+    await p.waitForSelector('.panel .digest');
+  }
   await p.waitForTimeout(300);
   const before = await p.locator('.panel .digest').innerText();
   await p.locator('.panel .file-row').first().click();
@@ -100,6 +105,11 @@ await step('삭제하면 감사 로그에 남는다', async () => {
 await step('새로고침해도 삭제 상태가 유지된다', async () => {
   await p.goto(F+'#/room/p1'); await p.waitForTimeout(500);
   await p.click('[data-act="panel"][data-arg="files"]');
+  await p.waitForTimeout(250);
+  if (!(await p.locator('.panel .digest').count())) {
+    await p.click('[data-act="toggleDigest"]');
+    await p.waitForSelector('.panel .digest');
+  }
   await p.waitForTimeout(300);
   const t = await p.locator('.panel .digest').innerText();
   if (/\b8건\b/.test(t)) throw new Error('삭제가 유지되지 않음: ' + t);

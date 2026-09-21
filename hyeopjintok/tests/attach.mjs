@@ -96,6 +96,8 @@ await p.screenshot({path:'shots/b3-sent.png'});
 await step('자료 목록·패널에도 등록된다', async () => {
   await p.click('[data-act="panel"][data-arg="files"]');
   await p.waitForTimeout(300);
+  await p.click('[data-act="toggleDigest"]');
+  await p.waitForSelector('.panel .digest');
   const t = await p.locator('.panel .digest').innerText();
   if (!/8건/.test(t)) throw new Error('자료 건수 미반영: ' + t);
 });

@@ -370,6 +370,36 @@ await step('헤더에 대화 기간이 있다', async () => {
   const t = await p.locator('.room-header__title').innerText();
   if (!/3월 11일 ~ 3월 14일/.test(t)) throw new Error('기간 없음: ' + t);
 });
+await step('협진 요약은 결론부터 보여준다', async () => {
+  await p.goto(F + '#/room/p1'); await p.reload(); await p.waitForTimeout(600);
+  await p.click('#thread [data-act="askClose"]');
+  await p.waitForSelector('.modal .sum');
+  /* 맨 위 덩어리가 핵심 의견이어야 합니다 — 스크롤해서 찾게 하면 안 됩니다 */
+  const lede = await p.locator('.sum__lede').innerText();
+  if (!/3월 11일 ~ 3월 14일/.test(lede)) throw new Error('기간 없음: ' + lede);
+  if (!/관절 보존이 가능한 단계/.test(lede)) throw new Error('핵심 의견이 위에 없음: ' + lede);
+  const box = await p.locator('.sum__lede').boundingBox();
+  const stats = await p.locator('.sum__stats').boundingBox();
+  if (box.y > stats.y) throw new Error('숫자 카드보다 아래에 있음');
+  /* 요약에서도 추정값을 강조하지 않습니다 */
+  const all = await p.locator('.sum').innerText();
+  if (/눈여겨볼/.test(all)) throw new Error('추정값을 강조하고 있음');
+  await p.click('.modal__foot [data-act="closeSheet"]');
+  await p.waitForSelector('.modal', { state:'detached' });
+});
+await step('자료 탭은 목록이 먼저, 정리는 접혀 있다', async () => {
+  await p.click('[data-act="panel"][data-arg="files"]');
+  await p.waitForSelector('.panel .file-row');
+  const rows = await p.locator('.panel .file-row').count();
+  const tab = await p.locator('.panel__tab').nth(1).innerText();
+  if (tab !== '자료 ' + rows) throw new Error(`탭 ${tab} ≠ 목록 ${rows}개`);
+  if (await p.locator('.panel .digest').count()) throw new Error('정리가 펼쳐져 있음');
+  /* 입력창에서 뺀 보관 기한 문구가 여기에 또 있으면 안 됩니다 */
+  if (/보관 기한/.test(await p.locator('.panel').innerText())) throw new Error('보관 기한 문구가 남음');
+  await p.click('[data-act="toggleDigest"]');
+  await p.waitForSelector('.panel .digest__grid');
+  await p.click('[data-act="panel"][data-arg="info"]');
+});
 await step('협진이라고 부른다 — 상담이 아니라', async () => {
   const t = await p.locator('#thread .close-cta').innerText();
   if (!/협진 종료하기/.test(t)) throw new Error('버튼=' + t);

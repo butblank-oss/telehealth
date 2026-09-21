@@ -38,8 +38,13 @@ await step('캡션을 누르면 확대 뷰어와 계측표가 열린다', async 
 await p.keyboard.press('Escape');
 await step('패널 자료 탭에 분석 정리 + 카드 캡션', async () => {
   await p.click('[data-act="panel"][data-arg="files"]');
+  await p.click('[data-act="toggleDigest"]');
+  await p.waitForSelector('.panel .digest__grid');
+  await p.waitForTimeout(200);
   const d = await p.locator('.panel .digest').innerText();
-  if (!/자료/.test(d) || !/계측값/.test(d)) throw new Error('digest=' + d);
+  if (!/자료/.test(d) || !/자동 추정값/.test(d)) throw new Error('digest=' + d);
+  /* 자동 추정값은 참고용입니다 — 강조해서 눈길을 끌면 안 됩니다 */
+  if (/눈여겨볼/.test(d)) throw new Error('추정값을 강조하고 있음: ' + d);
 });
 await step('자료 분석 전체보기: 모든 자료의 계측표', async () => {
   await p.click('.panel [data-act="openFiles"]');
