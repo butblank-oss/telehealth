@@ -1288,7 +1288,7 @@ body { overscroll-behavior: none; }
 .up-item .field { background: var(--surface); }
 .up-item .field.is-filled { background: var(--accent-field); }
 
-/* ── 상담 요약 ────────────────────────────────────────────────── */
+/* ── 협진 요약 ────────────────────────────────────────────────── */
 
 .sum-card {
   /* .thread는 세로 flex 컨테이너입니다. overflow:hidden인 항목은 자동 최소 높이가
@@ -2092,10 +2092,10 @@ var DOCTORS = [
 var BASE_MEMBERS = ['kim', 'han', 'doh'];
 
 var NOTIS = [
-  { icon:'reply',  tone:'steel', title:'한상호 원장이 의견을 남겼습니다', body:'Nguyễn Văn Dũng · 물리치료 6주 후 재촬영 권합니다', when:'12분 전', room:'p1', unread:true },
-  { icon:'image',  tone:'sage',  title:'김소리 원장이 자료를 올렸습니다', body:'Trần Thị Mai · 발목 외측 사진 3장', when:'1시간 전', room:'p2', unread:true },
-  { icon:'alert',  tone:'clay',  title:'24시간째 답변이 없습니다', body:'김성호 · 요추 저림 문의', when:'어제', room:'p3', unread:true },
-  { icon:'userin', tone:'plum',  title:'김도현 원장이 방에 참여했습니다', body:'Nguyễn Văn Dũng', when:'2일 전', room:'p1', unread:false }
+  { icon:'reply',  tone:'steel', title:'한상호 원장이 의견을 남겼습니다', who:'Nguyễn Văn Dũng', body:'물리치료 6주 후 재촬영 권합니다', when:'12분 전', room:'p1', unread:true },
+  { icon:'image',  tone:'sage',  title:'김소리 원장이 자료를 올렸습니다', who:'Trần Thị Mai', body:'발목 외측 사진 3장', when:'1시간 전', room:'p2', unread:true },
+  { icon:'alert',  tone:'clay',  title:'24시간째 답변이 없습니다', who:'김성호', body:'요추 저림 문의', when:'어제', room:'p3', unread:true },
+  { icon:'userin', tone:'plum',  title:'김도현 원장이 방에 참여했습니다', who:'Nguyễn Văn Dũng', body:'', when:'2일 전', room:'p1', unread:false }
 ];
 
 var ADMIN_STATS = [
@@ -2150,7 +2150,7 @@ var S = {
   sheet: '', removeTarget: '',
   formTitle: '',
   formOpen: true,
-  form: { pname:'', age:'', sex:'', part:'', city:'' },
+  form: { pname:'', about:'' },
   picks: { kim:true },
   showAllDocs: false,
   joined: {},
@@ -2175,7 +2175,8 @@ var S = {
   call: null,
   globalQ: '무릎',
   notiRead: false,
-  toggles: { push:true, idle:true, file:false },
+  toggles: { push:true, idle:true, file:false, mask:true },
+  reveal: {},
   onbStep: 1,
   onbLicense: '',
   onbShot: false,
@@ -2371,7 +2372,7 @@ function filesDigest(roomId) {
   };
 }
 
-/* ── 상담 요약 ──────────────────────────────────────────────────
+/* ── 협진 요약 ──────────────────────────────────────────────────
    대화가 끝나는 시점에 "어떻게 시작했고, 어떻게 진행됐고, 무엇이 오갔는지"를
    빠짐없이 짧게 정리합니다. 문장을 지어내지 않고 실제 대화에서 뽑아 씁니다 —
    ★로 표시한 의견이 결론이 되고, 주제·자료·기간은 세어서 채웁니다. */
@@ -2510,7 +2511,9 @@ var PATHS = {
   video:    '<path d="m22 8-6 4 6 4z"/><rect x="2" y="6" width="14" height="12" rx="2"/>',
   videoOff: '<path d="M10.7 6H14a2 2 0 0 1 2 2v3.3"/><path d="M16 16a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h1"/><path d="m22 8-6 4"/><path d="m2 2 20 20"/>',
   mic:      '<rect x="9" y="2" width="6" height="11" rx="3"/><path d="M19 10a7 7 0 0 1-14 0"/><path d="M12 17v5"/>',
-  micOff:   '<path d="M9 9v1a3 3 0 0 0 5.1 2.1"/><path d="M15 9.3V5a3 3 0 0 0-5.9-.8"/><path d="M19 10a7 7 0 0 1-1.1 3.8"/><path d="M15.4 15.4A7 7 0 0 1 5 10"/><path d="M12 17v5"/><path d="m2 2 20 20"/>'
+  micOff:   '<path d="M9 9v1a3 3 0 0 0 5.1 2.1"/><path d="M15 9.3V5a3 3 0 0 0-5.9-.8"/><path d="M19 10a7 7 0 0 1-1.1 3.8"/><path d="M15.4 15.4A7 7 0 0 1 5 10"/><path d="M12 17v5"/><path d="m2 2 20 20"/>',
+  eye:      '<path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/>',
+  eyeoff:   '<path d="M10.6 5.2A9.9 9.9 0 0 1 12 5c6.4 0 10 7 10 7a18 18 0 0 1-2.9 3.7"/><path d="M6.6 6.7A18 18 0 0 0 2 12s3.6 7 10 7a9.6 9.6 0 0 0 4.3-1"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/><path d="m2 2 20 20"/>'
 };
 
 function ic(name, size, opts) {
@@ -2538,6 +2541,27 @@ function field(opts) {
     + ' inputmode="' + (opts.inputmode || 'text') + '"'
     + ' value="' + esc(opts.value || '') + '"'
     + ' placeholder="' + esc(opts.ph || '') + '">';
+}
+
+/* 진료실 모니터는 환자가 봅니다. 앞 환자 이름이 다음 환자에게 보이면
+   안 되므로 화면에 뜨는 환자 이름은 기본으로 가운데를 가립니다.
+   규칙은 하나뿐입니다 — 띄어쓰기로 나눈 각 낱말의 가운데를 가린다.
+   김성호 → 김*호,  Nguyễn Văn Dũng → N****n V*n D**g */
+function maskWord(w) {
+  var ch = Array.from(w);
+  if (ch.length <= 1) return w;
+  if (ch.length === 2) return ch[0] + '*';
+  return ch[0] + new Array(ch.length - 1).join('*') + ch[ch.length - 1];
+}
+function maskName(name) {
+  return String(name || '').split(' ').map(maskWord).join(' ');
+}
+/* 화면에 환자 이름을 쓸 때는 반드시 이걸로 씁니다.
+   방마다 눈 아이콘으로 잠깐 풀 수 있고, 내 정보에서 아예 끌 수 있습니다. */
+function pname(name, roomId) {
+  if (!S.toggles.mask) return name;
+  if (roomId && S.reveal[roomId]) return name;
+  return maskName(name);
 }
 
 /* 라벨은 입력칸 위에 따로 둡니다 — 플레이스홀더로 대신하지 않습니다 */
@@ -2806,7 +2830,7 @@ function roomRow(r, active) {
     + avatar(r.initial, r.tone)
     + '<span class="grow truncate" style="display:block">'
       + '<span class="room-row__top">'
-        + '<span class="room-row__name truncate">' + esc(r.name) + '</span>'
+        + '<span class="room-row__name truncate">' + esc(pname(r.name, r.id)) + '</span>'
         + '<span class="room-row__when num">' + esc(r.when) + '</span>'
       + '</span>'
       + '<span class="room-row__mid">'
@@ -2861,11 +2885,11 @@ function stateTabs() {
 function roomListBody() {
   var list = shownRooms();
   if (!list.length) {
-    var titles = { archive:'보관한 대화가 없습니다', closed:'종료한 상담이 없습니다',
+    var titles = { archive:'보관한 대화가 없습니다', closed:'종료한 협진이 없습니다',
       unread:'안 읽은 대화가 없습니다', all:'대화가 없습니다', open:'진행 중인 협진이 없습니다' };
     var bodies = { archive:'보관하면 목록에서 숨기고 여기에 모입니다', closed:'종료해도 기록과 자료는 남습니다',
       unread:'새 메시지가 오면 여기에 표시됩니다', all:'새 협진 요청으로 시작하세요',
-      open:'종료된 상담은 전체 또는 종료 탭에 있습니다' };
+      open:'종료된 협진은 전체 또는 종료 탭에 있습니다' };
     return '<div class="empty-state">'
       + '<div class="empty-state__title">' + esc(titles[S.tab]) + '</div>'
       + '<div class="empty-state__body">' + esc(bodies[S.tab]) + '</div></div>';
@@ -3094,7 +3118,7 @@ function msgView(m, prev) {
   return out;
 }
 
-/* 상담 요약 카드. 종료 시점에 대화 맨 끝에 남고, 방 관리에서도 열어 볼 수 있습니다. */
+/* 협진 요약 카드. 종료 시점에 대화 맨 끝에 남고, 방 관리에서도 열어 볼 수 있습니다. */
 function summaryBody(room) {
   var x = buildSummary(room);
   var n = 0;
@@ -3203,7 +3227,7 @@ function summaryCard(room) {
   return '<div class="sum-card">'
     + '<div class="sum-card__head">'
       + ic('list', 16)
-      + '<span class="t4-strong grow">상담 요약</span>'
+      + '<span class="t4-strong grow">협진 요약</span>'
       + '<span class="badge--auto">자동 정리</span>'
     + '</div>'
     + summaryBody(room)
@@ -3261,7 +3285,7 @@ function roomView() {
   if (trashed || archived || closed) {
     var text = trashed ? '삭제 예정입니다. 30일 뒤 영구 삭제되며 그 전에는 복구할 수 있습니다.'
       : (archived ? '보관된 대화입니다. 목록에서는 숨겨지고 보관함과 검색에서 찾을 수 있습니다.'
-      : '종료된 상담입니다. 기록과 자료는 그대로 남아 있습니다.');
+      : '종료된 협진입니다. 기록과 자료는 그대로 남아 있습니다.');
     var action = trashed ? '복구' : (archived ? '보관 해제' : '다시 열기');
     banner = '<div class="' + cls('state-banner', trashed && 'state-banner--danger') + '">'
       + '<span class="state-banner__text">' + esc(text) + '</span>'
@@ -3279,7 +3303,7 @@ function roomView() {
       + '<div class="empty-state__body">다른 말로 검색해 보세요</div></div>';
   } else {
     thread = msgs.map(function (m, i) { return msgView(m, msgs[i - 1]); }).join('');
-    /* 상담이 끝나면 그 시점까지의 대화를 정리해 맨 끝에 남깁니다 */
+    /* 협진이 끝나면 그 시점까지의 대화를 정리해 맨 끝에 남깁니다 */
     if (closed && !S.searchOpen) thread += summaryCard(room);
     /* 진행 중이면 같은 자리에 종료 버튼을 둡니다 — 누르면 여기에 요약이 남습니다 */
     /* 상대 답을 기다리는 중에는 종료 버튼이 부담스럽습니다.
@@ -3302,7 +3326,7 @@ function roomView() {
       + (isMobile() ? iconBtn('go', '환자 목록으로', ic('back', 20), 'btn--quiet', 'rooms') : '')
       + avatar(room.initial, room.tone, 'md')
       + '<div class="room-header__title truncate">'
-        + '<div class="t2 truncate">' + esc(room.name) + '</div>'
+        + '<div class="t2 truncate">' + esc(pname(room.name, room.id)) + '</div>'
         + '<div class="t4 truncate">' + esc(room.chips.join(' · ')) + ' · 참여 ' + memberKeys().length + '명</div>'
       + '</div>'
       + '<div class="room-header__actions">'
@@ -3361,7 +3385,7 @@ function roomView() {
       + '<div class="composer__row">'
         + iconBtn('attach', '자료 첨부', ic('clip', 20), 'btn--quiet')
         + '<textarea class="composer__input" data-k="draft" data-input="draft" data-enter="send"'
-          + ' placeholder="' + (closed ? '종료된 상담입니다. 다시 열면 이어서 쓸 수 있습니다' : '의견을 입력하세요') + '"'
+          + ' placeholder="' + (closed ? '종료된 협진입니다. 다시 열면 이어서 쓸 수 있습니다' : '의견을 입력하세요') + '"'
           + ' aria-label="메시지 입력" rows="1">' + esc(S.draft) + '</textarea>'
         + '<button type="button" class="' + cls('btn', 'btn--icon', canSend ? 'btn--primary' : 'btn--primary is-disabled') + '"'
           + ' data-act="send" aria-label="보내기"' + (canSend ? '' : ' aria-disabled="true"') + '>' + ic('send', 18) + '</button>'
@@ -3623,7 +3647,13 @@ function panelView() {
     }).join('');
 
     body = '<div class="panel__section">환자</div>'
-      + '<div class="t2" style="margin-bottom:var(--s4)">' + esc(room.name) + '</div>'
+      + '<div class="row" style="gap:var(--s2);margin-bottom:var(--s4)">'
+        + '<span class="t2 grow truncate">' + esc(pname(room.name, room.id)) + '</span>'
+        + (S.toggles.mask
+            ? iconBtn('reveal', S.reveal[room.id] ? '이름 다시 가리기' : '이름 잠깐 보기',
+                      ic(S.reveal[room.id] ? 'eyeoff' : 'eye', 17), 'btn--quiet', room.id)
+            : '')
+      + '</div>'
       + '<div class="row" style="flex-wrap:wrap;gap:var(--s2);margin-bottom:var(--s8)">'
         + room.chips.map(function (c) {
           return '<span class="badge" style="padding:5px 9px;border-radius:7px">' + esc(c) + '</span>';
@@ -3696,7 +3726,7 @@ function homeScreen() {
         return '<button type="button" class="result-row" data-act="open" data-arg="' + esc(r.id) + '">'
           + avatar(r.initial, r.tone)
           + '<span class="grow truncate" style="display:block">'
-            + '<span class="t3-strong truncate" style="display:block">' + esc(r.name) + '</span>'
+            + '<span class="t3-strong truncate" style="display:block">' + esc(pname(r.name, r.id)) + '</span>'
             + '<span class="room-row__summary truncate" style="display:block;margin:0">' + esc(r.summary) + '</span>'
             + '<span class="t4 truncate" style="display:block;color:var(--ink-3)">' + esc(r.last) + '</span>'
           + '</span>'
@@ -3749,7 +3779,7 @@ function searchResults() {
       threadMsgs(r.id, t.id).forEach(function (m) {
         if ((m.body || '').indexOf(q) >= 0) {
           var p = PEOPLE[m.who] || PEOPLE.han;
-          msgs.push({ rid:r.id, room:r.name, who:p.name, when:m.when, body:m.body });
+          msgs.push({ rid:r.id, room:pname(r.name, r.id), who:p.name, when:m.when, body:m.body });
         }
       });
     });
@@ -3758,7 +3788,7 @@ function searchResults() {
   list.forEach(function (r) {
     filesOf(r.id).forEach(function (f) {
       if ((f.name + f.tag + captionOf(f) + r.name + r.summary).indexOf(q) >= 0) {
-        files.push({ rec:f, room:r.name });
+        files.push({ rec:f, room:pname(r.name, r.id) });
       }
     });
   });
@@ -3831,7 +3861,8 @@ function notisScreen() {
       + '<span class="avatar avatar--md tone-' + n.tone + '">' + ic(n.icon, 17) + '</span>'
       + '<span class="grow truncate" style="display:block">'
         + '<span class="t4-strong" style="display:block">' + esc(n.title) + '</span>'
-        + '<span class="t4 truncate" style="display:block">' + esc(n.body) + '</span>'
+        + '<span class="t4 truncate" style="display:block">'
+          + esc([pname(n.who, n.room), n.body].filter(Boolean).join(' · ')) + '</span>'
         + '<span class="t5" style="display:block;font-weight:500;letter-spacing:0;color:var(--ink-3);margin-top:3px">'
           + esc(n.when) + '</span>'
       + '</span>'
@@ -3854,7 +3885,8 @@ function notisScreen() {
 
 function meScreen() {
   var me = PEOPLE[S.me];
-  var settings = [['push','새 메시지 알림','내가 참여한 방만'],
+  var settings = [['mask','환자 이름 가리기','진료실 화면에 이름이 그대로 보이지 않게 합니다'],
+                  ['push','새 메시지 알림','내가 참여한 방만'],
                   ['idle','미응답 알림','24시간 지나면 알려줍니다'],
                   ['file','자료 업로드 알림','새 사진·파일이 올라올 때']].map(function (s) {
     var on = !!S.toggles[s[0]];
@@ -3940,30 +3972,29 @@ function pickRows(exclude) {
   }).join('');
 }
 
+/* 칸 순서는 의사가 생각하는 순서를 따릅니다 — 이 환자를 · 이게 궁금한데 · 누구한테.
+   나이·성별·부위를 따로 받아 봤자 결국 한 줄로 이어 붙었으므로 한 칸으로 합쳤고,
+   협진 판단에 쓰이지 않던 거주 도시는 뺐습니다. */
 function newSheetBody() {
-  var titleOk = S.formTitle.trim().length > 0;
-  var fields = [['환자 이름','pname','예: Nguyễn Văn A'],['나이','age','예: 45'],['성별','sex','예: 남성'],
-                ['부위','part','예: 무릎 내측'],['거주 도시','city','예: 하노이']];
-  var filledCount = fields.filter(function (f) { return String(S.form[f[1]] || '').trim(); }).length;
-  var hint = filledCount === 0 ? '비워둬도 방은 만들어집니다. 다만 이름이 없으면 목록에서 찾기 어렵습니다.'
-    : (filledCount < 5 ? filledCount + '개 입력됨 · 나머지는 나중에 환자 정보에서 채울 수 있습니다.' : '모두 입력되었습니다.');
+  var fields = [['환자 이름','pname','예: Nguyễn Văn A'],
+                ['환자 한 줄','about','예: 45세 남성 · 무릎 내측']];
 
-  return labeled('formTitle', '무엇을 물어보시겠어요?', true,
-      field({ k:'formTitle', action:'formTitle', value:S.formTitle, ph:'예: 무릎 안쪽 통증 소견 부탁드립니다', lg:true }))
-    + '<p class="field-hint">' + esc(S.formTitle.trim() ? '이 제목이 첫 대화 주제가 됩니다' : '한 줄이면 충분합니다. 나머지는 대화로 이어가세요') + '</p>'
-    + '<div class="row" style="justify-content:space-between;margin:var(--s8) 0 var(--s3)">'
-      + '<span class="t5" style="color:var(--ink-3)">환자 정보 · 선택</span>'
+  return '<div class="row" style="justify-content:space-between;margin:0 0 var(--s3)">'
+      + '<span class="t5" style="color:var(--ink-3)">환자 · 선택</span>'
       + '<button type="button" class="link-btn" data-act="toggleForm" aria-expanded="' + S.formOpen + '">'
         + (S.formOpen ? '접기' : '펼치기') + '</button>'
     + '</div>'
     + (S.formOpen
         ? '<div class="field-grid">' + fields.map(function (f) {
             return '<div>' + labeled('f_' + f[1], f[0], false,
-              field({ k:'f_' + f[1], action:'formField', arg:f[1], value:S.form[f[1]], ph:f[2],
-                      inputmode: f[1] === 'age' ? 'numeric' : 'text' })) + '</div>';
+              field({ k:'f_' + f[1], action:'formField', arg:f[1], value:S.form[f[1]], ph:f[2] })) + '</div>';
           }).join('') + '</div>'
-          + '<p class="field-hint">' + esc(hint) + '</p>'
+          + '<p class="field-hint">비워둬도 방은 만들어집니다. 나중에 환자 정보에서 채울 수 있습니다.</p>'
         : '')
+    + '<div style="margin-top:var(--s8)"></div>'
+    + labeled('formTitle', '무엇을 물어보시겠어요?', true,
+        field({ k:'formTitle', action:'formTitle', value:S.formTitle, ph:'예: 무릎 안쪽 통증 소견 부탁드립니다', lg:true }))
+    + '<p class="field-hint">' + esc(S.formTitle.trim() ? '이 제목이 첫 대화 주제가 됩니다' : '한 줄이면 충분합니다. 나머지는 대화로 이어가세요') + '</p>'
     + '<div class="row" style="justify-content:space-between;margin:var(--s8) 0 var(--s3)">'
       + '<span class="t5" style="color:var(--ink-3)">초대할 의사 · '
         + DOCTORS.filter(function (d) { return S.picks[d.k]; }).length + '명 선택</span>'
@@ -3973,8 +4004,8 @@ function newSheetBody() {
         ? '<button type="button" class="link-btn" data-act="showAllDocs">의사 ' + (DOCTORS.length - 3) + '명 더 보기</button>'
         : '')
     + '<p class="field-hint" style="margin-top:var(--s5)">'
-      + '방 이름은 환자 이름이 됩니다. 문의 제목은 방 안의 첫 주제가 됩니다.</p>'
-    + (titleOk ? '' : '');
+      + '방 이름은 환자 이름이 됩니다. 목록에서는 가운데 글자를 가려서 보여줍니다. '
+      + '문의 제목은 방 안의 첫 주제가 됩니다.</p>';
 }
 
 function inviteSheetBody() {
@@ -3992,7 +4023,7 @@ function inviteSheetBody() {
         ? '<button type="button" class="link-btn" data-act="showAllDocs">의사 ' + (DOCTORS.length - 3) + '명 더 보기</button>'
         : '')
     + '<div class="notice" style="margin-top:var(--s7)">'
-      + '초대된 의사는 ' + esc(room.name) + ' 방의 지난 대화와 자료를 모두 볼 수 있습니다.</div>';
+      + '초대된 의사는 ' + esc(pname(room.name, room.id)) + ' 방의 지난 대화와 자료를 모두 볼 수 있습니다.</div>';
 }
 
 function filesSheetBody() {
@@ -4155,7 +4186,7 @@ function dropSheetBody() {
       + esc(p.org) + '</div></div>'
     + '</div>'
     + '<p class="field-hint" style="margin:0 0 var(--s4)">'
-      + esc(p.name) + '을(를) <b>' + esc(room.name) + '</b> 방에서 빼면'
+      + esc(p.name) + '을(를) <b>' + esc(pname(room.name, room.id)) + '</b> 방에서 빼면'
       + ' 이 환자의 대화와 자료를 더는 볼 수 없습니다.</p>'
     + '<ul class="drop-list">'
       + '<li>지금까지 남긴 글과 자료는 방에 그대로 남습니다.</li>'
@@ -4175,7 +4206,7 @@ function closeSheetBody() {
 function menuSheetBody() {
   var id = S.roomId;
   var items = [
-    { act:'openSummary', icon:'list', label:'상담 요약 보기',
+    { act:'openSummary', icon:'list', label:'협진 요약 보기',
       sub:'지금까지 오간 내용을 한 장으로 정리해 보여줍니다', tone:'accent' },
     { act:'openFiles', icon:'image', label:'자료 분석',
       sub:'올라온 자료의 자동 추정값을 모아서 봅니다', tone:'plain' },
@@ -4215,14 +4246,14 @@ function sheetView() {
   var sheet = S.sheet;
   var conf = {
     new:    { w:'',            title:'새 협진 요청', sub:'제목만 쓰면 바로 시작됩니다', body:newSheetBody, action:'협진 방 만들기' },
-    invite: { w:'modal--md',   title:'의사 초대',   sub:room.name + ' 방에 의사를 추가합니다', body:inviteSheetBody, action:'초대하기' },
-    files:  { w:'modal--lg',   title:'자료 분석', sub:room.name + ' · ' + filesOf(room.id).length + '건 · 만료 없음', body:filesSheetBody, action:null },
-    summary:{ w:'modal--lg',   title:'협진 요약', sub:room.name + ' · 대화에서 자동 정리', body:function () { return summaryBody(roomById(S.roomId)); }, action:null },
-    attach: { w:'modal--md',   title:'자료 첨부', sub:room.name + ' · 올리기 전에 무엇인지 적습니다',
+    invite: { w:'modal--md',   title:'의사 초대',   sub:pname(room.name, room.id) + ' 방에 의사를 추가합니다', body:inviteSheetBody, action:'초대하기' },
+    files:  { w:'modal--lg',   title:'자료 분석', sub:pname(room.name, room.id) + ' · ' + filesOf(room.id).length + '건 · 만료 없음', body:filesSheetBody, action:null },
+    summary:{ w:'modal--lg',   title:'협진 요약', sub:pname(room.name, room.id) + ' · 대화에서 자동 정리', body:function () { return summaryBody(roomById(S.roomId)); }, action:null },
+    attach: { w:'modal--md',   title:'자료 첨부', sub:pname(room.name, room.id) + ' · 올리기 전에 무엇인지 적습니다',
               body:attachSheetBody,
               action:((S.attach && S.attach.items.length) ? S.attach.items.length + '개 첨부하기' : '첨부하기') },
-    close:  { w:'modal--lg',   title:'협진 종료', sub:room.name + ' · 종료하면 종료함으로 옮겨집니다', body:closeSheetBody, action:'요약 남기고 종료' },
-    menu:   { w:'modal--sm',   title:'방 관리',     sub:room.name, body:menuSheetBody, action:null },
+    close:  { w:'modal--lg',   title:'협진 종료', sub:pname(room.name, room.id) + ' · 종료하면 종료함으로 옮겨집니다', body:closeSheetBody, action:'요약 남기고 종료' },
+    menu:   { w:'modal--sm',   title:'방 관리',     sub:pname(room.name, room.id), body:menuSheetBody, action:null },
     drop:   { w:'modal--sm',   title:'방에서 제외',
               sub:(PEOPLE[S.removeTarget] || {}).name || '',
               body:dropSheetBody, action:'제외하기' }
@@ -4310,7 +4341,7 @@ function callView() {
     + ' aria-label="협진 통화">'
     + '<div class="call__top">'
       + '<span class="badge badge--accent">' + (video ? '영상' : '음성') + ' 협진 통화</span>'
-      + '<span class="call__room truncate">' + esc(room.name) + '</span>'
+      + '<span class="call__room truncate">' + esc(pname(room.name, room.id)) + '</span>'
       + '<span class="call__timer num" data-call-timer>'
         + (connecting ? '연결 중…' : callClock(c.sec)) + '</span>'
     + '</div>'
@@ -4530,7 +4561,7 @@ var ACTIONS = {
   homeGo: function (v) { S.tab = v; S.page = isMobile() ? 'rooms' : 'room'; },
   openNew: function () {
     S.sheet = 'new'; S.formTitle = ''; S.formOpen = true; S.showAllDocs = false;
-    S.form = { pname:'', age:'', sex:'', part:'', city:'' };
+    S.form = { pname:'', about:'' };
   },
   openInvite: function () { S.sheet = 'invite'; S.showAllDocs = false; },
   openFiles: function () { S.sheet = 'files'; },
@@ -4622,19 +4653,18 @@ var ACTIONS = {
     if (!title) return;
     var f = S.form;
     var name = (f.pname || '').trim();
-    var summary = [f.age ? f.age + '세' : '', f.sex ? f.sex.slice(0, 1) : '', f.part]
-      .filter(Boolean).join(' · ');
+    var about = (f.about || '').trim();
     var id = 'n' + Date.now();
     S.extraRooms = [{
       id: id,
-      name: name || ('이름 미입력' + (f.part ? ' · ' + f.part : '')),
-      initial: name ? name.slice(0, 1) : '환',
+      name: name || '이름 미입력',
+      initial: name ? Array.from(name)[0] : '환',
       tone: 'steel',
       when: '방금',
-      summary: summary || '정보 미입력',
+      summary: about || '정보 미입력',
       last: '방이 만들어졌습니다',
-      chips: [f.age ? f.age + '세' : '나이 미입력', f.sex || '성별 미입력',
-              f.part || '부위 미입력', f.city || '거주 미입력'],
+      chips: about ? about.split('·').map(function (c) { return c.trim(); }).filter(Boolean)
+                   : ['환자 정보 미입력'],
       threads: [{ id:'t1', label: title.slice(0, 12) }]
     }].concat(S.extraRooms);
     openRoom(id);
@@ -4659,6 +4689,7 @@ var ACTIONS = {
 
   readAll: function () { S.notiRead = true; },
   toggle: function (v) { S.toggles[v] = !S.toggles[v]; },
+  reveal: function (v) { S.reveal[v] = !S.reveal[v]; },
   switchMe: function (v) { S.me = v; }
 };
 

@@ -136,6 +136,42 @@ await step('추정값은 잰 값처럼 보이지 않는다', async () => {
   if (!/진단 근거가 되지 않습니다/.test(note)) throw new Error('고지 문구 없음: ' + note);
   await p.click('.viewer__head [data-act="closeViewer"]');
 });
+await step('환자 이름은 기본으로 가려진다', async () => {
+  const names = await p.locator('.rail .room-row__name').allInnerTexts();
+  if (names.some(n => /Nguyễn Văn Dũng|김성호/.test(n))) throw new Error('이름이 그대로: ' + names);
+  if (!names.includes('김*호')) throw new Error('가림 규칙이 다름: ' + names);
+  /* 방 안에서는 잠깐 풀어볼 수 있어야 한다 */
+  await p.click('.panel [data-act="reveal"]');
+  await p.waitForTimeout(200);
+  const shown = await p.locator('.room-header__title .t2').innerText();
+  if (shown !== 'Nguyễn Văn Dũng') throw new Error('안 풀림: ' + shown);
+  await p.click('.panel [data-act="reveal"]');
+  await p.waitForTimeout(200);
+  /* 내 정보에서 아예 끌 수도 있다 */
+  await p.click('.navrail [data-arg="me"]');
+  await p.click('[data-act="toggle"][data-arg="mask"]');
+  await p.click('.navrail [data-arg="rooms"]');
+  await p.waitForTimeout(250);
+  const off = await p.locator('.rail .room-row__name').allInnerTexts();
+  if (!off.includes('김성호')) throw new Error('끄기가 안 먹음: ' + off);
+  await p.click('.navrail [data-arg="me"]');
+  await p.click('[data-act="toggle"][data-arg="mask"]');
+  await p.goto(F + '#/room/p1'); await p.waitForTimeout(400);
+});
+await step('새 협진 요청은 환자 → 문의 → 의사 순서다', async () => {
+  await p.click('[data-act="openNew"]');
+  await p.waitForSelector('.modal');
+  const order = await p.locator('.modal [data-k]').evaluateAll(
+    ns => ns.map(n => n.dataset.k));
+  const want = ['f_pname', 'f_about', 'formTitle'];
+  if (order.slice(0, 3).join(',') !== want.join(',')) throw new Error('순서=' + order);
+  const t = await p.locator('.modal').innerText();
+  for (const gone of ['나이', '성별', '거주 도시']) {
+    if (t.includes(gone)) throw new Error('지운 칸이 남음: ' + gone);
+  }
+  await p.keyboard.press('Escape');
+  await p.waitForSelector('.modal', { state:'detached' });
+});
 await step('협진이라고 부른다 — 상담이 아니라', async () => {
   const t = await p.locator('#thread .close-cta').innerText();
   if (!/협진 종료하기/.test(t)) throw new Error('버튼=' + t);
