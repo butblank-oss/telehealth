@@ -138,13 +138,13 @@ await step('추정값은 잰 값처럼 보이지 않는다', async () => {
 });
 await step('환자 이름은 기본으로 가려진다', async () => {
   const names = await p.locator('.rail .room-row__name').allInnerTexts();
-  if (names.some(n => /Nguyễn Văn Dũng|김성호/.test(n))) throw new Error('이름이 그대로: ' + names);
+  if (names.some(n => /박정우|김성호/.test(n))) throw new Error('이름이 그대로: ' + names);
   if (!names.includes('김*호')) throw new Error('가림 규칙이 다름: ' + names);
   /* 방 안에서는 잠깐 풀어볼 수 있어야 한다 */
   await p.click('.panel [data-act="reveal"]');
   await p.waitForTimeout(200);
   const shown = await p.locator('.room-header__title .t2').innerText();
-  if (shown !== 'Nguyễn Văn Dũng') throw new Error('안 풀림: ' + shown);
+  if (shown !== '박정우') throw new Error('안 풀림: ' + shown);
   await p.click('.panel [data-act="reveal"]');
   await p.waitForTimeout(200);
   /* 내 정보에서 아예 끌 수도 있다 */
@@ -175,7 +175,7 @@ await step('새 협진 요청은 환자 → 문의 → 의사 순서다', async 
 await step('물어본 문장이 첫 메시지로 전송된다', async () => {
   await p.click('[data-act="openNew"]');
   await p.waitForSelector('.modal');
-  await p.fill('[data-k="f_pname"]', 'Đỗ Minh Quân');
+  await p.fill('[data-k="f_pname"]', '정민석');
   await p.fill('[data-k="formTitle"]', '어깨 회전근개 파열 의심되는데 소견 부탁드립니다');
   await p.click('[data-act="submitSheet"]');
   await p.waitForTimeout(400);

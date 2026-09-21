@@ -91,14 +91,14 @@ await step('새 협진 요청 modal', async () => {
 });
 await shot('05-modal-new');
 await step('create room', async () => {
-  await page.fill('[data-k="f_pname"]', 'Lê Minh Anh');
+  await page.fill('[data-k="f_pname"]', '한지은');
   await page.fill('[data-k="f_about"]', '38세 여성 · 어깨');
   await page.fill('[data-k="formTitle"]', '어깨 회전근개 소견 부탁드립니다');
   await page.click('[data-act="submitSheet"]');
   await page.waitForTimeout(200);
   /* 화면에는 가운데를 가린 이름이 뜹니다 */
   const name = await page.textContent('.room-header__title .t2');
-  if (!name.includes('L* M**h A*h')) throw new Error('room name=' + name);
+  if (!name.includes('한*은')) throw new Error('room name=' + name);
   const n = await page.locator('.rail .room-row').count();
   if (n !== 6) throw new Error('rows after create=' + n);
 });

@@ -132,7 +132,7 @@ await step('새로 만든 방에 올린 자료도 뷰어가 찾는다', async ()
   await p.click('[data-act="openNew"]');
   await p.waitForSelector('[data-k="formTitle"]');
   await p.fill('[data-k="formTitle"]', '어깨 회전근개 소견 부탁드립니다');
-  await p.fill('[data-k="f_pname"]', 'Lê Minh Anh');
+  await p.fill('[data-k="f_pname"]', '한지은');
   await p.click('[data-act="submitSheet"]');
   await p.waitForTimeout(300);
   await p.click('[data-act="attach"]');
@@ -147,7 +147,7 @@ await step('새로 만든 방에 올린 자료도 뷰어가 찾는다', async ()
   await p.locator('#thread .bubble__tile').last().click();
   await p.waitForSelector('.viewer');
   const head = await p.locator('.viewer__head').innerText();
-  if (!/Lê Minh Anh/.test(head)) throw new Error('방을 못 찾음: ' + head);
+  if (!/한\*은/.test(head)) throw new Error('방을 못 찾음: ' + head);
   if (!(await p.locator('.viewer__img').count())) throw new Error('그림 없음');
   await p.click('.viewer__head [data-act="closeViewer"]');
   await p.goto(F+'#/room/p1'); await p.waitForTimeout(400);

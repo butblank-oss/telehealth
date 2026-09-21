@@ -1929,11 +1929,11 @@ body { overscroll-behavior: none; }
 /* ── 1. 시드 데이터 ────────────────────────────────────────────── */
 
 var ROOMS = [
-  { id:'p1', name:'Nguyễn Văn Dũng', initial:'D', tone:'steel', when:'방금', unread:2,
+  { id:'p1', name:'박정우', initial:'박', tone:'steel', when:'방금', unread:2,
     summary:'45세 남 · 무릎 내측', last:'물리치료 6주 후 재촬영 권합니다',
     chips:['45세 남성','하노이 6년','정형외과'],
     threads:[{ id:'t1', label:'무릎 통증' }, { id:'t2', label:'재활 계획' }] },
-  { id:'p2', name:'Trần Thị Mai', initial:'M', tone:'sage', when:'22분',
+  { id:'p2', name:'이서연', initial:'이', tone:'sage', when:'22분',
     summary:'35세 여 · 발목 부종', last:'사진 3장 올렸습니다',
     chips:['35세 여성','하노이 1년','외상 2주'],
     threads:[{ id:'t1', label:'발목 부종' }] },
@@ -1941,7 +1941,7 @@ var ROOMS = [
     summary:'52세 남 · 요추 저림', last:'2주 뒤 재평가 예약 잡았습니다',
     chips:['52세 남성','하노이 4년','요추'],
     threads:[{ id:'t1', label:'요추 저림' }] },
-  { id:'p4', name:'Phạm Thu Hà', initial:'H', tone:'clay', when:'3일',
+  { id:'p4', name:'최은주', initial:'최', tone:'clay', when:'3일',
     summary:'61세 여 · 무릎 전치환 후', last:'삽입물 위치 양호합니다',
     chips:['61세 여성','하노이 8년','전치환 후'],
     threads:[{ id:'t1', label:'수술 후 경과' }] },
@@ -2092,10 +2092,10 @@ var DOCTORS = [
 var BASE_MEMBERS = ['kim', 'han', 'doh'];
 
 var NOTIS = [
-  { icon:'reply',  tone:'steel', title:'한상호 원장이 의견을 남겼습니다', who:'Nguyễn Văn Dũng', body:'물리치료 6주 후 재촬영 권합니다', when:'12분 전', room:'p1', unread:true },
-  { icon:'image',  tone:'sage',  title:'김소리 원장이 자료를 올렸습니다', who:'Trần Thị Mai', body:'발목 외측 사진 3장', when:'1시간 전', room:'p2', unread:true },
+  { icon:'reply',  tone:'steel', title:'한상호 원장이 의견을 남겼습니다', who:'박정우', body:'물리치료 6주 후 재촬영 권합니다', when:'12분 전', room:'p1', unread:true },
+  { icon:'image',  tone:'sage',  title:'김소리 원장이 자료를 올렸습니다', who:'이서연', body:'발목 외측 사진 3장', when:'1시간 전', room:'p2', unread:true },
   { icon:'alert',  tone:'clay',  title:'24시간째 답변이 없습니다', who:'김성호', body:'요추 저림 문의', when:'어제', room:'p3', unread:true },
-  { icon:'userin', tone:'plum',  title:'김도현 원장이 방에 참여했습니다', who:'Nguyễn Văn Dũng', body:'', when:'2일 전', room:'p1', unread:false }
+  { icon:'userin', tone:'plum',  title:'김도현 원장이 방에 참여했습니다', who:'박정우', body:'', when:'2일 전', room:'p1', unread:false }
 ];
 
 var ADMIN_STATS = [
@@ -2113,7 +2113,7 @@ var ADMIN_USERS = [
 ];
 var AUDIT_ROWS = [
   ['09:41','한상호 원장','열람','HN-2409 · 기립 전후면 엑스레이','Mac · 병원 내부망','view'],
-  ['09:38','김소리 원장','업로드','Trần Thị Mai · 발목 사진 3장','iPhone · 하노이','upload'],
+  ['09:38','김소리 원장','업로드','이서연 · 발목 사진 3장','iPhone · 하노이','upload'],
   ['09:12','김도현 원장','다운로드','김성호 · 요추 MRI','Windows · 병원 내부망','download'],
   ['어제 18:20','한상호 원장','초대','정우성 원장을 협진톡에 초대','Mac · 병원 내부망','invite'],
   ['어제 17:02','김소리 원장','삭제','이재민 · 대화 삭제 요청','iPhone · 하노이','delete'],
@@ -2546,7 +2546,7 @@ function field(opts) {
 /* 진료실 모니터는 환자가 봅니다. 앞 환자 이름이 다음 환자에게 보이면
    안 되므로 화면에 뜨는 환자 이름은 기본으로 가운데를 가립니다.
    규칙은 하나뿐입니다 — 띄어쓰기로 나눈 각 낱말의 가운데를 가린다.
-   김성호 → 김*호,  Nguyễn Văn Dũng → N****n V*n D**g */
+   김성호 → 김*호,  남궁민수 → 남**수 */
 /* 문의 이름은 단어 중간에서 자르지 않습니다.
    "어깨 회전근개 파열 의"처럼 끊기면 뜻이 상합니다. */
 function shortLabel(title, max) {
@@ -3512,7 +3512,7 @@ function viewerView() {
         + '<div class="grow truncate">'
           + '<div class="t2 truncate">' + esc(nameOf(f)) + '</div>'
           + '<div class="t5" style="color:var(--ink-3);font-weight:500;letter-spacing:0">'
-            + esc(roomById(rid).name) + ' · ' + esc(f.when)
+            + esc(pname(roomById(rid).name, rid)) + ' · ' + esc(f.when)
             + (f.size ? ' · ' + esc(f.size) : '')
             + (f.fileName && f.fileName !== f.name ? ' · ' + esc(f.fileName) : '') + '</div>'
         + '</div>'
@@ -3997,7 +3997,7 @@ function pickRows(exclude) {
    나이·성별·부위를 따로 받아 봤자 결국 한 줄로 이어 붙었으므로 한 칸으로 합쳤고,
    협진 판단에 쓰이지 않던 거주 도시는 뺐습니다. */
 function newSheetBody() {
-  var fields = [['환자 이름','pname','예: Nguyễn Văn A'],
+  var fields = [['환자 이름','pname','예: 박정우'],
                 ['환자 한 줄','about','예: 45세 남성 · 무릎 내측']];
 
   return '<div class="row" style="justify-content:space-between;margin:0 0 var(--s3)">'
