@@ -75,25 +75,25 @@ await step('문의 1건 배지는 사라지고 2건부터만 보인다', async (
   if (texts.some(t => /문의 1/.test(t))) throw new Error('문의 1이 남아 있음');
   if (!texts.some(t => /문의 2/.test(t))) throw new Error('문의 2가 안 보임');
 });
-await step('내 차례인 방에 답변 대기가 붙는다', async () => {
+await step('내 차례인 방에 배지가 붙는다', async () => {
   const texts = await p.locator('.room-row').allInnerTexts();
-  if (!texts.some(t => /답변 대기/.test(t))) throw new Error('답변 대기 없음');
-  // 안 읽음이 있으면 답변 대기와 겹치지 않는다
-  const both = texts.filter(t => /답변 대기/.test(t) && /\d+건 안 읽음/.test(t));
+  if (!texts.some(t => /내 차례/.test(t))) throw new Error('내 차례 없음');
+  // 안 읽음이 있으면 내 차례와 겹치지 않는다
+  const both = texts.filter(t => /내 차례/.test(t) && /\d+건 안 읽음/.test(t));
   if (both.length) throw new Error('배지가 겹침');
 });
-await step('홈이 답변 대기로 꼽은 방은 목록에도 표시가 있다', async () => {
+await step('홈이 내 차례로 꼽은 방은 목록에도 표시가 있다', async () => {
   await p.click('.navrail [data-arg="home"]');
   await p.waitForSelector('.home');
   const names = await p.locator('.home .result-row .t3-strong').allInnerTexts();
-  if (!names.length) throw new Error('홈에 답변 대기가 없음');
+  if (!names.length) throw new Error('홈에 내 차례가 없음');
   await p.click('.navrail [data-arg="rooms"]');
   await p.waitForTimeout(250);
-  /* 안 읽음이 있으면 그게 더 강한 신호라 답변 대기 대신 미읽음 배지가 붙습니다 */
+  /* 안 읽음이 있으면 그게 더 강한 신호라 내 차례 대신 미읽음 배지가 붙습니다 */
   for (const n of names) {
     const row = p.locator('.room-row', { hasText: n }).first();
     const t = await row.innerText();
-    if (!/답변 대기/.test(t) && !/건 안 읽음/.test(t)) throw new Error(`${n}: 표시 없음 — ${t}`);
+    if (!/내 차례/.test(t) && !/건 안 읽음/.test(t)) throw new Error(`${n}: 표시 없음 — ${t}`);
   }
 });
 await p.screenshot({path:'shots/d2-list.png'});

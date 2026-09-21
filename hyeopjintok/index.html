@@ -1745,8 +1745,6 @@ body { overscroll-behavior: none; }
 }
 
 .home { max-width: 1120px; margin: 0 auto; }
-.home-cols { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: var(--s9); margin-top: var(--s9); }
-.home-col { min-width: 0; }
 .stat-card--link { display: block; width: 100%; text-align: left; }
 .stat-card--link .stat-card__label,
 .stat-card--link .stat-card__value { display: block; }
@@ -1761,7 +1759,6 @@ body { overscroll-behavior: none; }
 }
 .home-empty strong { display: block; font-size: var(--t4); color: var(--ink-1); }
 .home-empty span { display: block; font-size: var(--t4); color: var(--ink-3); }
-@media (max-width: 1009px) { .home-cols { grid-template-columns: 1fr; gap: var(--s7); } }
 
 .attach-file {
   display: flex; align-items: center; gap: var(--s3);
@@ -2127,7 +2124,6 @@ var S = {
   callMenu: false,
   autoSeen: false,
   attachOver: 0,
-  homeAllFlags: false,
   topic: 'all',
   panel: 'info',
   panelOpen: true,
@@ -2786,7 +2782,7 @@ function roomRow(r, active) {
 
   var flag = r.unread && live(r)
     ? '<span class="badge badge--count">' + r.unread + '<span class="sr-only">건 안 읽음</span></span>'
-    : (needsReply(r) ? '<span class="badge badge--warn">답변 대기</span>' : '');
+    : (needsReply(r) ? '<span class="badge badge--warn">내 차례</span>' : '');
 
   return '<button type="button" class="' + cls('room-row', active && 'is-active') + '"'
     + ' data-act="open" data-arg="' + esc(r.id) + '"' + (active ? ' aria-current="true"' : '') + '>'
@@ -3117,7 +3113,7 @@ function summaryBody(room) {
         + '<span class="sum__thread-name">' + esc(t.label) + '</span>'
         + '<span class="badge">' + t.count + '건</span>'
         + (t.files ? '<span class="badge">자료 ' + t.files + '</span>' : '')
-        + (t.waiting ? '<span class="badge badge--danger">답변 대기</span>' : '')
+        + (t.waiting ? '<span class="badge badge--danger">미응답</span>' : '')
       + '</div>'
       + who(t.openedBy, t.opened)
       + (t.closed ? who(t.closedBy, t.closed) : '')
@@ -3624,9 +3620,13 @@ function panelView() {
   + '</aside>';
 }
 
-/* ── 11-2. 홈 대시보드 ──────────────────────────────────────────
-   "지금 내가 뭘 해야 하나"에 답하는 화면입니다. 숫자는 전부 실제 데이터에서
-   셉니다 — 답변이 밀린 방, 눈여겨볼 계측값, 오늘 올라온 자료. */
+/* ── 11-2. 홈 ──────────────────────────────────────────────────
+   "지금 내가 볼 방이 어디냐"에만 답합니다. 자동 계측 요약과 자료 섬네일은
+   홈에서 뺐습니다 — 방에 들어가면 어차피 다시 보이고, 홈에서는 판단할
+   근거가 모자란 숫자라 오히려 오해를 만듭니다.
+
+   문구는 한쪽 역할을 전제하지 않습니다. 같은 계정이 어떤 방에서는 묻고
+   어떤 방에서는 답하므로, "내 답변 대기"가 아니라 "내 차례"라고 씁니다. */
 
 function isStale(r) {
   /* 데모에는 실제 타임스탬프가 없어 목록 표기로 가늠합니다 */
@@ -3635,24 +3635,12 @@ function isStale(r) {
 
 function homeStats() {
   var list = pool().filter(live).filter(function (r) { return !S.closed[r.id]; });
-  var waiting = [], flagged = [], recent = [];
-
-  list.forEach(function (r) {
-    if (needsReply(r)) waiting.push(r);
-    filesOf(r.id).forEach(function (f) {
-      var warn = metricsOf(f).filter(function (m) { return m[2] === 'warn'; });
-      if (warn.length >= 3) flagged.push({ room:r, file:f, warn:warn.length });
-      recent.push({ room:r, file:f });
-    });
-  });
-
+  var waiting = list.filter(needsReply);
   return {
     open: list.length,
     waiting: waiting,
     unread: list.filter(function (r) { return r.unread; }).length,
-    stale: waiting.filter(isStale).length,
-    flagged: flagged.sort(function (a, b) { return b.warn - a.warn; }),
-    files: recent.slice(-8).reverse()
+    stale: waiting.filter(isStale).length
   };
 }
 
@@ -3663,7 +3651,7 @@ function homeScreen() {
   /* 지표는 눌러서 그 목록으로 갈 수 있어야 지표입니다. */
   var cards = [
     { label:'진행 중 협진', n:x.open, unit:'건', act:'homeGo', arg:'open' },
-    { label:'내 답변 대기', n:x.waiting.length, unit:'건', act:'homeGo', arg:'open', tone:x.waiting.length ? 'warn' : '' },
+    { label:'내 차례', n:x.waiting.length, unit:'건', act:'homeGo', arg:'open', tone:x.waiting.length ? 'warn' : '' },
     { label:'안 읽음', n:x.unread, unit:'건', act:'homeGo', arg:'unread', tone:x.unread ? 'danger' : '' },
     { label:'24시간 넘게 답 없음', n:x.stale, unit:'건', act:'homeGo', arg:'open', tone:x.stale ? 'danger' : '' }
   ].map(function (c) {
@@ -3685,32 +3673,13 @@ function homeScreen() {
             + '<span class="t4 truncate" style="display:block;color:var(--ink-3)">' + esc(r.last) + '</span>'
           + '</span>'
           + (isStale(r) ? '<span class="badge badge--danger">' + esc(r.when) + '부터</span>'
-                        : '<span class="badge badge--warn">답변 대기</span>')
+                        : '<span class="badge badge--warn">내 차례</span>')
           + ic('next', 18)
         + '</button>';
       }).join('')
     : '<div class="home-empty">' + ic('checkc', 22)
-      + '<div><strong>답변을 기다리는 협진이 없습니다</strong>'
-      + '<span>새 문의가 오면 여기에 가장 먼저 뜹니다</span></div></div>';
-
-  var shownFlags = S.homeAllFlags ? x.flagged : x.flagged.slice(0, 2);
-  var flagged = shownFlags.length
-    ? shownFlags.map(function (o) {
-        return '<button type="button" class="result-card" data-act="openViewer" data-arg="' + esc(o.file.id) + '">'
-          + '<span class="row" style="gap:var(--s2);margin-bottom:4px">'
-            + '<span class="badge">' + esc(o.file.tag) + '</span>'
-            + '<span class="t4-strong grow truncate">' + esc(o.room.name) + ' · ' + esc(nameOf(o.file)) + '</span>'
-            + '<span class="badge badge--warn">' + o.warn + '</span>'
-          + '</span>'
-          + '<span class="t4" style="display:block;color:var(--ink-2)">' + esc(captionOf(o.file)) + '</span>'
-        + '</button>';
-      }).join('')
-      + (x.flagged.length > 2 && !S.homeAllFlags
-          ? '<button type="button" class="link-btn" data-act="homeAllFlags">'
-            + (x.flagged.length - 2) + '건 더 보기</button>'
-          : '')
-    : '<div class="home-empty">' + ic('checkc', 22)
-      + '<div><strong>눈여겨볼 계측값이 없습니다</strong></div></div>';
+      + '<div><strong>지금 내 차례인 협진이 없습니다</strong>'
+      + '<span>상대 선생님이 글을 남기면 여기에 가장 먼저 뜹니다</span></div></div>';
 
   return '<div class="screen">'
     + '<div class="screen__head">'
@@ -3724,24 +3693,13 @@ function homeScreen() {
     + '</div>'
     + '<div class="screen__body" data-sk="home"><div class="home">'
       + '<div class="stat-grid">' + cards + '</div>'
-      + '<div class="home-cols">'
-        + '<section class="home-col">'
-          + '<div class="row" style="justify-content:space-between;margin:0 0 var(--s4)">'
-            + '<h2 class="sec-label" style="margin:0">내 답변을 기다리는 협진</h2>'
-            + '<button type="button" class="link-btn" data-act="go" data-arg="rooms">전체 보기</button>'
-          + '</div>'
-          + waiting
-        + '</section>'
-        + '<section class="home-col">'
-          + '<h2 class="sec-label" style="margin:0 0 var(--s4)">눈여겨볼 계측값</h2>'
-          + flagged
-        + '</section>'
-      + '</div>'
-      + '<h2 class="sec-label">최근 올라온 자료</h2>'
-      + '<div class="thumb-grid">' + x.files.map(function (o) {
-          return '<div class="thumb-cell">' + fileCard(o.file)
-            + '<span class="thumb-cell__room truncate">' + esc(o.room.name) + '</span></div>';
-        }).join('') + '</div>'
+      + '<section style="margin-top:var(--s9)">'
+        + '<div class="row" style="justify-content:space-between;margin:0 0 var(--s4)">'
+          + '<h2 class="sec-label" style="margin:0">내가 확인할 협진</h2>'
+          + '<button type="button" class="link-btn" data-act="go" data-arg="rooms">전체 보기</button>'
+        + '</div>'
+        + waiting
+      + '</section>'
       + '<p class="legal">협진톡 v2.0 · 초대 전용 폐쇄형 서비스 · '
         + '의료법 제34조에 따른 의료인 간 원격협력 도구입니다.</p>'
     + '</div></div>'
@@ -4514,7 +4472,6 @@ var ACTIONS = {
   },
 
   homeGo: function (v) { S.tab = v; S.page = isMobile() ? 'rooms' : 'room'; },
-  homeAllFlags: function () { S.homeAllFlags = true; },
   openNew: function () {
     S.sheet = 'new'; S.formTitle = ''; S.formOpen = true; S.showAllDocs = false;
     S.form = { pname:'', age:'', sex:'', part:'', city:'' };
