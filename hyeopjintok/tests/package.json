@@ -1,0 +1,9 @@
+{
+  "name": "hyeopjintok-tests",
+  "private": true,
+  "type": "module",
+  "devDependencies": { "playwright": "^1.49.1" },
+  "scripts": {
+    "test": "for f in test feat edit attach fix3 fix4 ui resize ime2 tap; do node $f.mjs || exit 1; done"
+  }
+}
