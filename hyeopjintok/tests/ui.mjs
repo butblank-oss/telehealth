@@ -163,10 +163,10 @@ await step('새 협진 요청은 환자 → 문의 → 의사 순서다', async 
   await p.waitForSelector('.modal');
   const order = await p.locator('.modal [data-k]').evaluateAll(
     ns => ns.map(n => n.dataset.k));
-  const want = ['f_pname', 'f_about', 'formTitle'];
-  if (order.slice(0, 3).join(',') !== want.join(',')) throw new Error('순서=' + order);
+  const want = ['f_pname', 'f_age', 'f_sex', 'formTitle'];
+  if (order.slice(0, 4).join(',') !== want.join(',')) throw new Error('순서=' + order);
   const t = await p.locator('.modal').innerText();
-  for (const gone of ['나이', '성별', '거주 도시']) {
+  for (const gone of ['부위', '거주 도시']) {
     if (t.includes(gone)) throw new Error('지운 칸이 남음: ' + gone);
   }
   await p.keyboard.press('Escape');
@@ -176,11 +176,16 @@ await step('물어본 문장이 첫 메시지로 전송된다', async () => {
   await p.click('[data-act="openNew"]');
   await p.waitForSelector('.modal');
   await p.fill('[data-k="f_pname"]', '정민석');
+  await p.fill('[data-k="f_age"]', '45');
+  await p.fill('[data-k="f_sex"]', '여성');
   await p.fill('[data-k="formTitle"]', '어깨 회전근개 파열 의심되는데 소견 부탁드립니다');
   await p.click('[data-act="submitSheet"]');
   await p.waitForTimeout(400);
   const t = await p.locator('#thread').innerText();
   if (!t.includes('어깨 회전근개 파열 의심되는데 소견 부탁드립니다')) throw new Error('첫 메시지 없음: ' + t);
+  /* 적은 환자 정보가 첫 줄에 함께 실리고, 이름은 거기서도 가려져야 한다 */
+  const intro = await p.locator('#thread .bubble__intro').first().innerText();
+  if (intro !== '정*석, 45세, 여성') throw new Error('소개 줄=' + intro);
   /* 목록 마지막 줄도 시스템 문구가 아니라 그 질문이어야 한다 */
   const row = await p.locator('.rail .room-row').first().innerText();
   if (/방이 만들어졌습니다/.test(row)) throw new Error('목록에 시스템 문구가 남음');

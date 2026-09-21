@@ -133,6 +133,7 @@ await step('새로 만든 방에 올린 자료도 뷰어가 찾는다', async ()
   await p.waitForSelector('[data-k="formTitle"]');
   await p.fill('[data-k="formTitle"]', '어깨 회전근개 소견 부탁드립니다');
   await p.fill('[data-k="f_pname"]', '한지은');
+  await p.fill('[data-k="f_age"]', '38');
   await p.click('[data-act="submitSheet"]');
   await p.waitForTimeout(300);
   await p.click('[data-act="attach"]');
