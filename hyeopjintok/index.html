@@ -474,6 +474,28 @@ button:focus-visible,
 }
 .room-row.is-active { background: var(--accent-soft); }
 
+/* 정리 버튼은 행 위에 얹힙니다. 마지막 줄이 버튼 밑으로 들어가지
+   않도록 행 오른쪽을 비워 둡니다. */
+.room-rowwrap { position: relative; }
+.room-rowwrap .room-row { padding-right: 42px; }
+.room-row__more {
+  position: absolute;
+  top: 50%; right: 4px;
+  transform: translateY(-50%);
+  width: 32px; height: var(--tap);
+  min-height: var(--tap);
+  color: var(--ink-3);
+  border-radius: 8px;
+}
+.room-row__more:hover { background: var(--canvas-2); color: var(--ink-1); }
+.room-rowwrap .room-row__pop { top: calc(50% + 15px); right: 4px; left: auto; min-width: 136px; }
+@media (hover: hover) {
+  .room-row__more { opacity: 0; }
+  .room-rowwrap:hover .room-row__more,
+  .room-rowwrap.is-menu .room-row__more,
+  .room-row__more:focus-visible { opacity: 1; }
+}
+
 .room-row__top { display: flex; align-items: baseline; gap: 7px; margin-bottom: 1px; }
 .room-row__name { flex: 1; font-size: var(--t3); font-weight: 600; letter-spacing: -.02em; }
 .room-row__when { flex: none; font-size: var(--t5); font-weight: 500; letter-spacing: 0; color: var(--ink-3); }
@@ -1955,23 +1977,23 @@ body { overscroll-behavior: none; }
 /* ── 1. 시드 데이터 ────────────────────────────────────────────── */
 
 var ROOMS = [
-  { id:'p1', name:'박정우', initial:'박', tone:'steel', when:'방금', unread:2,
+  { id:'p1', name:'박정우', initial:'박', tone:'steel', when:'방금', ago:1, unread:2,
     summary:'45세 남 · 무릎 내측', last:'물리치료 6주 후 재촬영 권합니다',
     chips:['45세 남성','하노이 6년','정형외과'],
     threads:[{ id:'t1', label:'무릎 통증' }, { id:'t2', label:'재활 계획' }] },
-  { id:'p2', name:'이서연', initial:'이', tone:'sage', when:'22분',
+  { id:'p2', name:'이서연', initial:'이', tone:'sage', when:'22분', ago:22,
     summary:'35세 여 · 발목 부종', last:'사진 3장 올렸습니다',
     chips:['35세 여성','하노이 1년','외상 2주'],
     threads:[{ id:'t1', label:'발목 부종' }] },
-  { id:'p3', name:'김성호', initial:'김', tone:'plum', when:'어제', unread:1,
+  { id:'p3', name:'김성호', initial:'김', tone:'plum', when:'어제', ago:1440, unread:1,
     summary:'52세 남 · 요추 저림', last:'2주 뒤 재평가 예약 잡았습니다',
     chips:['52세 남성','하노이 4년','요추'],
     threads:[{ id:'t1', label:'요추 저림' }] },
-  { id:'p4', name:'최은주', initial:'최', tone:'clay', when:'3일',
+  { id:'p4', name:'최은주', initial:'최', tone:'clay', when:'3일', ago:4320,
     summary:'61세 여 · 무릎 전치환 후', last:'삽입물 위치 양호합니다',
     chips:['61세 여성','하노이 8년','전치환 후'],
     threads:[{ id:'t1', label:'수술 후 경과' }] },
-  { id:'p5', name:'이재민', initial:'이', tone:'slate', when:'1주',
+  { id:'p5', name:'이재민', initial:'이', tone:'slate', when:'1주', ago:10080,
     summary:'29세 남 · 어깨 통증', last:'감사합니다. 경과 지켜보겠습니다',
     chips:['29세 남성','다낭 2년','어깨'],
     threads:[{ id:'t1', label:'어깨 통증' }] }
@@ -2173,7 +2195,7 @@ var S = {
   star: false,
   pendingFile: null,
   sent: {},
-  sheet: '', removeTarget: '',
+  sheet: '', removeTarget: '', rowMenu: '',
   formTitle: '',
   formOpen: true,
   form: { pname:'', age:'', sex:'' },
@@ -2226,6 +2248,21 @@ function isMobile() {
 }
 function pool() {
   return S.extraRooms.concat(ROOMS);
+}
+/* 목록은 무조건 최신순입니다. 아침에 위에서부터 읽으면 되는 화면이어야
+   하는데, 지금까지는 시드 배열 순서 그대로라 답을 보낸 방이 사흘 전
+   방보다 아래에 남아 있었습니다.
+
+   ago는 "몇 분 전"입니다. 같은 값이 겹칠 때(둘 다 방금)는 나중에
+   건드린 쪽이 위로 오도록 bump로 갈라줍니다. */
+var bumpSeq = 0;
+function touchRoom(r) {
+  r.when = '방금';
+  r.ago = 0;
+  r.bump = ++bumpSeq;
+}
+function byRecent(a, b) {
+  return (a.ago || 0) - (b.ago || 0) || (b.bump || 0) - (a.bump || 0);
 }
 function roomById(id) {
   var list = pool();
@@ -2486,7 +2523,7 @@ function tabCounts() {
   };
 }
 function shownRooms() {
-  var list = pool();
+  var list = pool().slice().sort(byRecent);
   if (S.tab === 'unread') return list.filter(function (r) { return r.unread && live(r) && !S.closed[r.id]; });
   if (S.tab === 'closed') return list.filter(function (r) { return S.closed[r.id] && live(r); });
   if (S.tab === 'archive') return list.filter(function (r) { return S.archived[r.id] || S.trashed[r.id]; });
@@ -2867,21 +2904,45 @@ function roomRow(r, active) {
     ? '<span class="badge badge--count">' + r.unread + '<span class="sr-only">건 안 읽음</span></span>'
     : (needsReply(r) ? '<span class="badge badge--warn">내 차례</span>' : '');
 
-  return '<button type="button" class="' + cls('room-row', active && 'is-active') + '"'
-    + ' data-act="open" data-arg="' + esc(r.id) + '"' + (active ? ' aria-current="true"' : '') + '>'
-    + avatar(r.initial, r.tone)
-    + '<span class="grow truncate" style="display:block">'
-      + '<span class="room-row__top">'
-        + '<span class="room-row__name truncate">' + esc(pname(r.name, r.id)) + '</span>'
-        + '<span class="room-row__when num">' + esc(r.when) + '</span>'
+  /* 정리는 목록을 훑으면서 연달아 하는 일입니다. 한 건 정리하려고
+     방에 들어갔다 나오게 만들면 아무도 정리하지 않습니다.
+     버튼은 행 안에 넣을 수 없습니다(버튼 안의 버튼) — 행 위에 얹습니다.
+     손가락에는 늘 보이고, 마우스에는 그 행에 갈 때만 보입니다. */
+  var open = S.rowMenu === r.id;
+  var menu = [
+    { act:'rowArchive', label: S.archived[r.id] ? '보관 해제' : '보관', icon:'archive' },
+    { act:'rowTrash', label: S.trashed[r.id] ? '삭제 취소' : '삭제', icon:'trash',
+      danger: !S.trashed[r.id] }
+  ];
+
+  return '<div class="' + cls('room-rowwrap', open && 'is-menu') + '" data-tabmenu>'
+    + '<button type="button" class="' + cls('room-row', active && 'is-active') + '"'
+      + ' data-act="open" data-arg="' + esc(r.id) + '"' + (active ? ' aria-current="true"' : '') + '>'
+      + avatar(r.initial, r.tone)
+      + '<span class="grow truncate" style="display:block">'
+        + '<span class="room-row__top">'
+          + '<span class="room-row__name truncate">' + esc(pname(r.name, r.id)) + '</span>'
+          + '<span class="room-row__when num">' + esc(r.when) + '</span>'
+        + '</span>'
+        + '<span class="room-row__mid">'
+          + '<span class="room-row__summary truncate">' + esc(r.summary) + '</span>'
+          + marks.join('') + flag
+        + '</span>'
+        + '<span class="room-row__last truncate" style="display:block">' + esc(r.last) + '</span>'
       + '</span>'
-      + '<span class="room-row__mid">'
-        + '<span class="room-row__summary truncate">' + esc(r.summary) + '</span>'
-        + marks.join('') + flag
-      + '</span>'
-      + '<span class="room-row__last truncate" style="display:block">' + esc(r.last) + '</span>'
-    + '</span>'
-  + '</button>';
+    + '</button>'
+    + iconBtn('rowMenu', pname(r.name, r.id) + ' 정리', ic('dots', 16), 'room-row__more', r.id)
+    + (open
+        ? '<div class="tabmenu__pop room-row__pop">'
+          + menu.map(function (m) {
+              return '<button type="button" class="tabmenu__item" data-act="' + m.act + '"'
+                + ' data-arg="' + esc(r.id) + '"'
+                + (m.danger ? ' style="color:var(--danger)"' : '') + '>'
+                + ic(m.icon, 15) + '<span class="grow">' + esc(m.label) + '</span></button>';
+            }).join('')
+        + '</div>'
+        : '')
+  + '</div>';
 }
 
 /* 상태 탭.
@@ -4500,6 +4561,10 @@ var threadToBottom = true;
 var lastSheet = '';
 
 function openRoom(id) {
+  /* 읽었는데도 안 읽음이 남아 있으면 "오늘 볼 것을 하나씩 지워 나가는"
+     사용이 불가능합니다. 빨간 배지가 영원히 붙어 있게 됩니다. */
+  var r = roomById(id);
+  if (r) r.unread = 0;
   S.page = 'room';
   S.roomId = id;
   S.topic = 'all';
@@ -4615,7 +4680,7 @@ var ACTIONS = {
     }
     S.sent[key] = (S.sent[key] || []).concat([msg]);
     room.last = text || (a && a.items ? '자료 ' + a.items.length + '건 올렸습니다' : '자료를 올렸습니다');
-    room.when = '방금';
+    touchRoom(room);
     S.draft = '';
     S.star = false;
     S.pendingFile = null;
@@ -4727,6 +4792,8 @@ var ACTIONS = {
       initial: name ? Array.from(name)[0] : '환',
       tone: 'steel',
       when: '방금',
+      ago: 0,
+      bump: ++bumpSeq,
       summary: about || '정보 미입력',
       /* 목록 마지막 줄은 방금 물어본 그 문장입니다 */
       last: title,
@@ -4755,6 +4822,16 @@ var ACTIONS = {
      되돌릴 수는 있지만 당사자는 알 길이 없으므로 한 번 묻습니다. */
   askRemove: function (v) { S.removeTarget = v; S.sheet = 'drop'; },
   removeMember: function (v) { S.removed[v] = true; },
+  /* 목록에서 바로 정리합니다. 방을 옮기지 않고 그 자리에서 끝냅니다. */
+  rowMenu: function (v) { S.rowMenu = S.rowMenu === v ? '' : v; },
+  rowArchive: function (v) {
+    if (S.archived[v]) delete S.archived[v]; else { S.archived[v] = true; delete S.trashed[v]; }
+    S.rowMenu = '';
+  },
+  rowTrash: function (v) {
+    if (S.trashed[v]) delete S.trashed[v]; else { S.trashed[v] = true; delete S.archived[v]; }
+    S.rowMenu = '';
+  },
   toggleArchived: function () { toggleFlag('archived', 'archive'); },
   toggleTrashed: function () { toggleFlag('trashed', 'archive'); },
   exportRoom: function () { S.sheet = ''; },
@@ -4957,8 +5034,8 @@ app.addEventListener('click', function (e) {
   var stop = e.target.closest('[data-stop]');
   var node = e.target.closest('[data-act]');
   /* 더보기 메뉴는 바깥을 누르면 닫힙니다 */
-  if ((S.tabMenu || S.callMenu) && !e.target.closest('[data-tabmenu]')) {
-    S.tabMenu = false; S.callMenu = false;
+  if ((S.tabMenu || S.callMenu || S.rowMenu) && !e.target.closest('[data-tabmenu]')) {
+    S.tabMenu = false; S.callMenu = false; S.rowMenu = '';
     if (!node) { render(); return; }
   }
   if (!node) return;

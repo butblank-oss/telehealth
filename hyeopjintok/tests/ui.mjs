@@ -217,6 +217,49 @@ await step('문의 이름은 낱말 중간에서 안 잘린다', async () => {
   const label = await p.evaluate(() => S.extraRooms[0].threads[0].label);
   if (!/^어깨 회전근개 파열$/.test(label)) throw new Error('label=' + label);
 });
+await step('목록은 무조건 최신순이다', async () => {
+  await p.goto(F + '#/room/p5'); await p.waitForTimeout(400);
+  await p.fill('[data-k="draft"]', '경과 확인했습니다');
+  await p.click('[data-act="send"]');
+  await p.waitForTimeout(400);
+  const names = await p.locator('.rail .room-row__name').allInnerTexts();
+  if (names[0] !== '이*민') throw new Error('방금 답한 방이 맨 위가 아님: ' + names);
+  const whens = await p.locator('.rail .room-row__when').allInnerTexts();
+  if (whens[0] !== '방금') throw new Error('시간 순서가 아님: ' + whens);
+});
+await step('방을 열면 그 방 안 읽음이 사라진다', async () => {
+  await p.click('[data-act="tab"][data-arg="unread"]');
+  await p.waitForTimeout(250);
+  const before = await p.locator('.rail .room-row').count();
+  if (!before) throw new Error('안 읽음 방이 없음');
+  await p.locator('.rail .room-row').first().click();
+  await p.waitForTimeout(400);
+  const after = await p.locator('.rail .room-row').count();
+  if (after !== before - 1) throw new Error(`안 읽음이 안 줄어듦 ${before} → ${after}`);
+  await p.click('[data-act="tab"][data-arg="all"]');
+  await p.waitForTimeout(250);
+});
+await step('목록에서 바로 보관·삭제할 수 있다', async () => {
+  const rows = await p.locator('.rail .room-row').count();
+  await p.locator('.rail [data-act="rowMenu"]').first().click({ force: true });
+  await p.waitForSelector('.room-row__pop');
+  const items = await p.locator('.room-row__pop').innerText();
+  if (!/보관/.test(items) || !/삭제/.test(items)) throw new Error('메뉴=' + items);
+  await p.click('.room-row__pop [data-act="rowArchive"]');
+  await p.waitForTimeout(350);
+  if (await p.evaluate(() => Object.keys(S.archived).length) !== 1) throw new Error('보관 안 됨');
+  if (await p.locator('.rail .room-row').count() !== rows - 1) throw new Error('목록에서 안 빠짐');
+  /* 보관함에서 되돌릴 수도 있어야 한다 */
+  await p.click('[data-act="toggleTabMenu"]');
+  await p.click('.tabmenu__item[data-arg="archive"]');
+  await p.waitForTimeout(300);
+  await p.locator('.rail [data-act="rowMenu"]').first().click({ force: true });
+  await p.click('.room-row__pop [data-act="rowArchive"]');
+  await p.waitForTimeout(300);
+  if (await p.evaluate(() => Object.keys(S.archived).length) !== 0) throw new Error('보관 해제 안 됨');
+  await p.click('[data-act="tab"][data-arg="all"]');
+  await p.waitForTimeout(250);
+});
 await step('협진이라고 부른다 — 상담이 아니라', async () => {
   const t = await p.locator('#thread .close-cta').innerText();
   if (!/협진 종료하기/.test(t)) throw new Error('버튼=' + t);
@@ -237,6 +280,18 @@ await step('모바일에서도 탭이 안 잘리고 더보기가 뜬다', async 
   if (box.x + box.width > 391) throw new Error('메뉴가 화면 밖: ' + JSON.stringify(box));
 });
 await mp.screenshot({path:'shots/d3-m-tabs.png'});
+await step('모바일: 정리 버튼이 손가락에 늘 보이고 화면을 안 넘친다', async () => {
+  const btn = mp.locator('.screen__body [data-act="rowMenu"]').first();
+  const bb = await btn.boundingBox();
+  if (!bb || bb.height < 44) throw new Error('버튼 크기=' + JSON.stringify(bb));
+  if (await btn.evaluate(el => getComputedStyle(el).opacity) !== '1') throw new Error('버튼이 안 보임');
+  await btn.click({ force: true });
+  await mp.waitForSelector('.room-row__pop');
+  const pop = await mp.locator('.room-row__pop').boundingBox();
+  if (pop.x < 0 || pop.x + pop.width > 391) throw new Error('메뉴가 화면 밖: ' + JSON.stringify(pop));
+  const over = await mp.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+  if (over > 0) throw new Error('가로 넘침 ' + over);
+});
 
 await b.close();
 console.log('\n=== 에러 '+errs.length+'건 ===');
