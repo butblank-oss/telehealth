@@ -24,7 +24,8 @@ await step('말풍선 안 이미지에 자동 계측 캡션이 붙는다', async
 });
 await step('무릎 굽힘 각도가 대화 안에서 바로 보인다', async () => {
   const all = await p.locator('#thread').innerText();
-  if (!/굽힘 최대 118°/.test(all)) throw new Error('보행 영상 캡션 없음');
+  /* 값 앞의 ≈는 "잰 값이 아니라 어림값"이라는 표시라 반드시 붙어 있어야 합니다 */
+  if (!/굽힘 최대 ≈118°/.test(all)) throw new Error('보행 영상 캡션 없음');
 });
 await step('캡션을 누르면 확대 뷰어와 계측표가 열린다', async () => {
   await p.locator('#thread .bubble__caption').last().click();

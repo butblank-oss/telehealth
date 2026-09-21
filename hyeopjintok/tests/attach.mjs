@@ -104,7 +104,7 @@ await step('뷰어에서 설명·부위·소견과 실제 그림이 보인다', 
   await p.waitForSelector('.viewer .attach-info');
   const t = await p.locator('.viewer__side').innerText();
   if (!/우측 무릎 내측 반월상연골 파열/.test(t)) throw new Error('부위·소견 없음');
-  if (!/자동 계측 결과가 아직 없습니다/.test(t)) throw new Error('안내 없음');
+  if (!/자동 추정값이 아직 없습니다/.test(t)) throw new Error('안내 없음');
   /* 올린 그림이 회색 상자가 아니라 실제로 보여야 한다 */
   if (!(await p.locator('.viewer__img').count())) throw new Error('뷰어에 그림이 없음');
   const ok = await p.locator('.viewer__img').evaluate(el => el.complete && el.naturalWidth > 0);

@@ -98,6 +98,50 @@ await step('홈이 내 차례로 꼽은 방은 목록에도 표시가 있다', a
 });
 await p.screenshot({path:'shots/d2-list.png'});
 
+console.log('\n새 협진 · 제외 확인 · 추정값 표시');
+await step('새 협진 요청 버튼에 글자가 붙어 있다', async () => {
+  const t = await p.locator('.rail .rail__new').innerText();
+  if (!/새 협진 요청/.test(t)) throw new Error('글자 없음: ' + t);
+  const box = await p.locator('.rail .rail__new').boundingBox();
+  if (box.height < 44) throw new Error('버튼이 작음: ' + box.height);
+});
+await step('의사를 뺄 때는 먼저 묻는다', async () => {
+  await p.goto(F + '#/room/p1'); await p.waitForTimeout(400);
+  const before = await p.locator('.panel .member-row').count();
+  await p.locator('.panel [data-act="askRemove"]').first().click();
+  await p.waitForSelector('.modal');
+  const t = await p.locator('.modal').innerText();
+  if (!/더는 볼 수 없습니다/.test(t)) throw new Error('무엇이 끊기는지 안 알려줌');
+  /* 취소하면 아무 일도 없어야 한다 */
+  await p.click('.modal__foot [data-act="closeSheet"]');
+  await p.waitForSelector('.modal', { state:'detached' });
+  if (await p.locator('.panel .member-row').count() !== before) throw new Error('취소했는데 빠짐');
+  /* 확인하면 그때 빠진다 */
+  await p.locator('.panel [data-act="askRemove"]').first().click();
+  await p.waitForSelector('.modal');
+  await p.click('[data-act="submitSheet"]');
+  await p.waitForTimeout(300);
+  if (await p.locator('.panel .member-row').count() !== before - 1) throw new Error('확인했는데 안 빠짐');
+});
+await step('추정값은 잰 값처럼 보이지 않는다', async () => {
+  const cap = await p.locator('#thread .bubble__caption').first().innerText();
+  if (!/자동 추정/.test(cap)) throw new Error('배지=' + cap);
+  if (!/≈/.test(cap)) throw new Error('어림 표시 없음: ' + cap);
+  const style = await p.locator('#thread .bubble__caption').first()
+    .evaluate(el => getComputedStyle(el).borderStyle);
+  if (style !== 'dashed') throw new Error('점선이 아님: ' + style);
+  await p.locator('#thread .bubble__caption').first().click();
+  await p.waitForSelector('.viewer .auto-note');
+  const note = await p.locator('.viewer .auto-note').innerText();
+  if (!/진단 근거가 되지 않습니다/.test(note)) throw new Error('고지 문구 없음: ' + note);
+  await p.click('.viewer__head [data-act="closeViewer"]');
+});
+await step('협진이라고 부른다 — 상담이 아니라', async () => {
+  const t = await p.locator('#thread .close-cta').innerText();
+  if (!/협진 종료하기/.test(t)) throw new Error('버튼=' + t);
+  if (/상담/.test(t)) throw new Error('상담이 남아 있음');
+});
+
 console.log('\n모바일');
 const m=await b.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true,ignoreHTTPSErrors:true});
 const mp=await m.newPage();
